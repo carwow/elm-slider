@@ -73,7 +73,7 @@ DoubleSlider.view model.slider |> Html.map SliderMsg
 
 On mobile we suggest to use the `fallbackView` as `view` doesn't handle touchEvents
 ```elm
-DoubleSlider.view model.slider |> Html.map SliderMsg
+DoubleSlider.fallbackView model.slider |> Html.map SliderMsg
 ```
 
 ## Example
