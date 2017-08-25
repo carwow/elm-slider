@@ -1,4 +1,4 @@
-module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, formatCurrentValue)
+module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, formatCurrentValue)
 
 {-| A single slider built natively in Elm
 
@@ -20,7 +20,7 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, for
 
 # View
 
-@docs view, formatCurrentValue
+@docs view, fallbackView, formatCurrentValue
 
 -}
 
@@ -297,6 +297,8 @@ onRangeChange valueType shouldFetchModels =
         (Json.Decode.succeed shouldFetchModels)
 
 
+{-| Displays the slider using two inputs
+-}
 fallbackView : Model -> Html Msg
 fallbackView model =
     let
