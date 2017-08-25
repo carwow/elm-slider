@@ -1,92 +1,86 @@
 # elm-slider
 
-## DoubleSlider Usage
-
+```shell
+elm package install carwow/elm-slider
 ```
-model = { ..., doubleSlider : DoubleSlider.Model, ... }
 
-Msg = ... | DoubleSliderEvent DoubleSlider.Msg | ...
+## Usage
 
-init =
-    ...
-    doubleSliderModel = DoubleSlider.init { min = 0, max = 80000, step = 1000, value = 20000 }
+The `DoubleSlider.init` function creates a double range slider which handles values from `min` to `max` with a `step`,
+providing two thumbs with with values `lowValue` and `highValue`.
 
-model =
-    { ...
-    , doubleSlider = doubleSliderModel
-    ...
-    }
+```elm
+    slider =
+        DoubleSlider.init
+            { min = 50
+            , max = 5000
+            , step = 50
+            , lowValue = 50
+            , highValue = 5000
+            }
+```
 
-view =
-    ...
-    DoubleSlider.view model doubleSlider |> Html.map DoubleSliderEvent
-    ...
+The `SingleSlider.init` function creates a range slider which handles values from `min` to `max` with a `step`.
+
+```elm
+    slider =
+        SingleSlider.init
+            { min = 50
+            , max = 5000
+            , step = 50
+            , value = 2000
+            }
+```
+
+Because it uses mouse movements, the range slider requires subscriptions. After initialization, handle the subscriptions.
+```elm
+
+subscriptions =
+    Sub.map SliderMsg <|
+            DoubleSlider.subscriptions model.slider
+```
+
+Handle the updates from the subscription in your main update function. Together with the new model and a command
+the sliders update function returns also a boolean, which is false for all dragging updates and true when the
+dragging stops. This is useful if you want to trigger expensive commands like api calls only after the dragging
+has stopped.
+
+```elm
 update : Msg -> Model -> ( Model, Cmd Msg )
-update message model =
-    case message of
-
-        DoubleSliderEvent inner ->
+update msg model =
+    case msg of
+        SliderMsg innerMsg ->
             let
-                ( newSlider, cmd, shouldFetchModels ) =
-                    DoubleSlider.update inner model doubleSlider
+                ( newSlider, cmd, updateResults ) =
+                    DoubleSlider.update innerMsg model slider
 
                 newModel =
-                    { model | doubleSlider = newSlider }
+                    { model | slider = newSlider }
 
                 newCmd =
-                    if shouldFetchModels then
-                        Cmd.batch [ Cmd.map DoubleSliderEvent cmd, fetchResults newModel ]
+                    if updateResults then
+                        Cmd.batch [ Cmd.map SliderMsg cmd, otherCmd ]
                     else
-                        Cmd.map DoubleSliderEvent cmd
-
+                        otherCmd
             in
                 ( newModel, newCmd )
 ```
 
-## SingleSlider Usage
-
+To view the slider, simply call the view function
+```elm
+DoubleSlider.view model.slider |> Html.map SliderMsg
 ```
-model = { ..., singleSlider : SingleSlider.Model, ... }
 
-Msg = ... | SingleSliderEvent SingleSlider.Msg | ...
-
-init =
-    ...
-    singleSliderModel = SingleSlider.init { min = 0, max = 80000, step = 1000, value = 20000 }
-
-model =
-    { ...
-    , singleSlider = singleSliderModel
-    ...
-    }
-
-view =
-    ...
-    SingleSlider.view model.singleSlider |> Html.map SingleSliderEvent
-    ...
-update : Msg -> Model -> ( Model, Cmd Msg )
-update message model =
-    case message of
-
-        SingleSliderEvent inner ->
-            let
-                ( newSlider, cmd, shouldFetchModels ) =
-                    SingleSlider.update inner model.singleSlider
-
-                newModel =
-                    { model | singleSlider = newSlider }
-
-                newCmd =
-                    if shouldFetchModels then
-                        Cmd.batch [ Cmd.map SingleSliderEvent cmd, fetchResults newModel ]
-                    else
-                        Cmd.map SingleSliderEvent cmd
-
-            in
-                ( newModel, newCmd )
-
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.map (SingleSliderEvent) <|
-        SingleSlider.subscriptions model.singleSlider
+On mobile we suggest to use the `fallbackView` as `view` doesn't handle touchEvents
+```elm
+DoubleSlider.view model.slider |> Html.map SliderMsg
 ```
+
+## Example
+
+[...]
+
+
+## Css
+
+[...]
