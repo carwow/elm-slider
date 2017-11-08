@@ -45,7 +45,10 @@ type alias Model =
     , rangeStartValue : Float
     , thumbStartingPosition : Float
     , dragStartPosition : Float
+    , thumbParentWidth : Float
+    , thumbOverlapThresold : Float
     , formatter : Float -> String
+    , overMax : Bool
     }
 
 
@@ -59,7 +62,7 @@ type SliderValueType
 -}
 type Msg
     = TrackClicked SliderValueType String
-    | DragStart SliderValueType Position Float
+    | DragStart SliderValueType Position Float Float
     | DragAt Position
     | DragEnd Position
     | RangeChanged SliderValueType String Bool
@@ -67,19 +70,22 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, formatter : Float -> String } -> Model
+init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, thumbOverlapThresold : Float, formatter : Float -> String, overMax : Bool } -> Model
 init config =
     { min = config.min
     , max = config.max
     , step = config.step
     , lowValue = config.lowValue
     , highValue = config.highValue
+    , thumbOverlapThresold = config.thumbOverlapThresold
     , dragging = False
     , draggedValueType = None
     , rangeStartValue = 0
     , thumbStartingPosition = 0
+    , thumbParentWidth = 0
     , dragStartPosition = 0
     , formatter = config.formatter
+    , overMax = config.overMax
     }
 
 
@@ -109,12 +115,12 @@ update message model =
         TrackClicked valueType newValue ->
             let
                 convertedValue =
-                    String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0
+                    snapValue (String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0) model.step
 
                 newModel =
                     case valueType of
                         LowValue ->
-                            { model | lowValue = convertedValue }
+                            { model | lowValue = if(convertedValue > model.lowValue) then convertedValue else convertedValue + model.min }
 
                         HighValue ->
                             { model | highValue = convertedValue }
@@ -124,7 +130,7 @@ update message model =
             in
                 ( newModel, Cmd.none, True )
 
-        DragStart valueType position offsetLeft ->
+        DragStart valueType position offsetLeft offsetWidth ->
             let
                 newModel =
                     { model
@@ -133,14 +139,15 @@ update message model =
                         , rangeStartValue =
                             case valueType of
                                 LowValue ->
-                                    model.lowValue
+                                    model.lowValue - model.min
 
                                 HighValue ->
-                                    model.highValue
+                                    model.highValue - model.min
 
                                 None ->
                                     0
                         , thumbStartingPosition = offsetLeft + 16
+                        , thumbParentWidth = offsetWidth
                         , dragStartPosition = (toFloat position.x)
                     }
             in
@@ -148,18 +155,43 @@ update message model =
 
         DragAt position ->
             let
-                delta =
-                    ((toFloat position.x) - model.dragStartPosition)
+                rangeStart =
+                    case model.draggedValueType of
+                        HighValue ->
+                            model.rangeStartValue
+                        LowValue ->
+                            model.max - model.rangeStartValue - model.min
+                        None ->
+                            0
+                offset =
+                    case model.draggedValueType of
+                        HighValue ->
+                            model.thumbStartingPosition
+                        LowValue ->
+                            model.thumbParentWidth - model.thumbStartingPosition
+                        None ->
+                            0
 
-                -- TODO : fix calculation when rangeStartValue and/or thumbStartingPosition are 0
                 ratio =
-                    (model.rangeStartValue / model.thumbStartingPosition)
+                    rangeStart / offset
+
+                delta = ((toFloat position.x) - model.dragStartPosition)
 
                 newValue =
-                    snapValue ((model.thumbStartingPosition + delta) * ratio) model.step
+                    case model.draggedValueType of
+                        HighValue ->
+                            model.min + snapValue ((offset + delta) * ratio) model.step
+                        LowValue ->
+                            model.min + snapValue ((model.thumbParentWidth - offset + delta) * ratio) model.step
+                        None ->
+                            0
 
                 newModel =
-                    if newValue >= model.min && newValue <= model.max then
+                    if (model.draggedValueType == LowValue && newValue + ((toFloat model.step) * model.thumbOverlapThresold) > model.highValue) then
+                        model
+                    else if (model.draggedValueType == HighValue && newValue - ((toFloat model.step) * model.thumbOverlapThresold) < model.lowValue) then
+                        model
+                    else if newValue >= model.min && newValue <= model.max then
                         case model.draggedValueType of
                             LowValue ->
                                 { model | lowValue = newValue }
@@ -169,10 +201,6 @@ update message model =
 
                             None ->
                                 model
-                    else if (model.draggedValueType == LowValue && newValue > model.highValue - 1000) then
-                        model
-                    else if (model.draggedValueType == HighValue && newValue < model.lowValue + 1000) then
-                        model
                     else
                         model
             in
@@ -181,23 +209,28 @@ update message model =
         DragEnd position ->
             ( { model
                 | dragging = False
-                , rangeStartValue = 0
-                , thumbStartingPosition = 0
-                , dragStartPosition = 0
               }
             , Cmd.none
             , True
             )
 
 
-{-| renders the current values using the formatter
+{-| format current value
 -}
 formatCurrentValue : Model -> String
 formatCurrentValue model =
     if model.lowValue == model.min && model.highValue == model.max then
         ""
     else
-        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue)
+        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue) ++ isOverMax model.overMax model.highValue model.max
+
+
+isOverMax : Bool -> Float -> Float -> String
+isOverMax isOverMax maxValue currentHighValue  =
+    if(isOverMax && maxValue == currentHighValue) then
+        "+"
+    else
+        ""
 
 
 snapValue : Float -> Int -> Float
@@ -229,7 +262,7 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.max / rectangle.width) * mouseX))
+                    toString (round (((model.max / rectangle.width)) * mouseX))
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -281,12 +314,12 @@ onInsideRangeClick model =
 
 onThumbMouseDown : SliderValueType -> Json.Decode.Decoder Msg
 onThumbMouseDown valueType =
-    Json.Decode.map3
+    Json.Decode.map4
         DragStart
         (Json.Decode.succeed valueType)
         Mouse.position
         (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
-
+        (Json.Decode.at [ "target", "offsetParent", "offsetWidth" ] Json.Decode.float)
 
 onRangeChange : SliderValueType -> Bool -> Json.Decode.Decoder Msg
 onRangeChange valueType shouldFetchModels =
@@ -375,16 +408,16 @@ view model =
             round model.highValue
 
         progressRatio =
-            100 / model.max
+            100 / (model.max - model.min)
 
         lowThumbStartingPosition =
-            toString (model.lowValue * progressRatio) ++ "%"
+            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         highThumbStartingPosition =
-            toString (model.highValue * progressRatio) ++ "%"
+            toString ((model.highValue - model.min) * progressRatio) ++ "%"
 
         progressLow =
-            toString (model.lowValue * progressRatio) ++ "%"
+            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         progressHigh =
             toString ((model.max - model.highValue) * progressRatio) ++ "%"
