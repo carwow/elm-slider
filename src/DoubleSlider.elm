@@ -46,7 +46,7 @@ type alias Model =
     , thumbStartingPosition : Float
     , dragStartPosition : Float
     , thumbParentWidth : Float
-    , thumbOverlapThresold : Float
+    , thumbOverlapThreshold : Float
     , formatter : Float -> String
     , overMax : Bool
     }
@@ -70,14 +70,14 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, thumbOverlapThresold : Float, formatter : Float -> String, overMax : Bool } -> Model
+init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, thumbOverlapThreshold : Float, formatter : Float -> String, overMax : Bool } -> Model
 init config =
     { min = config.min
     , max = config.max
     , step = config.step
     , lowValue = config.lowValue
     , highValue = config.highValue
-    , thumbOverlapThresold = config.thumbOverlapThresold
+    , thumbOverlapThreshold = config.thumbOverlapThreshold
     , dragging = False
     , draggedValueType = None
     , rangeStartValue = 0
@@ -120,7 +120,7 @@ update message model =
                 newModel =
                     case valueType of
                         LowValue ->
-                            { model | lowValue = if(convertedValue > model.lowValue) then convertedValue else convertedValue + model.min }
+                            { model | lowValue = correctMin convertedValue model.lowValue model.min }
 
                         HighValue ->
                             { model | highValue = convertedValue }
@@ -159,37 +159,45 @@ update message model =
                     case model.draggedValueType of
                         HighValue ->
                             model.rangeStartValue
+
                         LowValue ->
                             model.max - model.rangeStartValue - model.min
+
                         None ->
                             0
+
                 offset =
                     case model.draggedValueType of
                         HighValue ->
                             model.thumbStartingPosition
+
                         LowValue ->
                             model.thumbParentWidth - model.thumbStartingPosition
+
                         None ->
                             0
 
                 ratio =
                     rangeStart / offset
 
-                delta = ((toFloat position.x) - model.dragStartPosition)
+                delta =
+                    ((toFloat position.x) - model.dragStartPosition)
 
                 newValue =
                     case model.draggedValueType of
                         HighValue ->
                             model.min + snapValue ((offset + delta) * ratio) model.step
+
                         LowValue ->
                             model.min + snapValue ((model.thumbParentWidth - offset + delta) * ratio) model.step
+
                         None ->
                             0
 
                 newModel =
-                    if (model.draggedValueType == LowValue && newValue + ((toFloat model.step) * model.thumbOverlapThresold) > model.highValue) then
+                    if (model.draggedValueType == LowValue && newValue + ((toFloat model.step) * model.thumbOverlapThreshold) > model.highValue) then
                         model
-                    else if (model.draggedValueType == HighValue && newValue - ((toFloat model.step) * model.thumbOverlapThresold) < model.lowValue) then
+                    else if (model.draggedValueType == HighValue && newValue - ((toFloat model.step) * model.thumbOverlapThreshold) < model.lowValue) then
                         model
                     else if newValue >= model.min && newValue <= model.max then
                         case model.draggedValueType of
@@ -222,12 +230,12 @@ formatCurrentValue model =
     if model.lowValue == model.min && model.highValue == model.max then
         ""
     else
-        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue) ++ isOverMax model.overMax model.highValue model.max
+        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue) ++ (isOverMax model.overMax model.highValue model.max)
 
 
 isOverMax : Bool -> Float -> Float -> String
-isOverMax isOverMax maxValue currentHighValue  =
-    if(isOverMax && maxValue == currentHighValue) then
+isOverMax isOverMax maxValue currentHighValue =
+    if isOverMax && maxValue == currentHighValue then
         "+"
     else
         ""
@@ -236,6 +244,14 @@ isOverMax isOverMax maxValue currentHighValue  =
 snapValue : Float -> Int -> Float
 snapValue value step =
     toFloat (((round value) // step) * step)
+
+
+correctMin : Float -> Float -> Float -> Float
+correctMin convertedValue lowValue minValue =
+    if convertedValue > lowValue then
+        convertedValue
+    else
+        convertedValue + minValue
 
 
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
@@ -262,10 +278,10 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round (((model.max / rectangle.width)) * mouseX))
+                    toString (round (model.max / rectangle.width) * mouseX)
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
-                (Json.Decode.at [ "offsetX" ] Json.Decode.float)
+                (Json.Decode.at [ "offsetX" ] Json.Decode.int)
     in
         Json.Decode.map2 TrackClicked valueTypeDecoder valueDecoder
 
@@ -320,6 +336,7 @@ onThumbMouseDown valueType =
         Mouse.position
         (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
         (Json.Decode.at [ "target", "offsetParent", "offsetWidth" ] Json.Decode.float)
+
 
 onRangeChange : SliderValueType -> Bool -> Json.Decode.Decoder Msg
 onRangeChange valueType shouldFetchModels =
