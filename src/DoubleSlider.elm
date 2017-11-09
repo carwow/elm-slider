@@ -46,9 +46,8 @@ type alias Model =
     , thumbStartingPosition : Float
     , dragStartPosition : Float
     , thumbParentWidth : Float
-    , thumbOverlapThreshold : Float
+    , overlapThreshold : Float
     , formatter : Float -> String
-    , overMax : Bool
     }
 
 
@@ -70,14 +69,14 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, thumbOverlapThreshold : Float, formatter : Float -> String, overMax : Bool } -> Model
+init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, overlapThreshold : Float, formatter : Float -> String, overMax : Bool } -> Model
 init config =
     { min = config.min
     , max = config.max
     , step = config.step
     , lowValue = config.lowValue
     , highValue = config.highValue
-    , thumbOverlapThreshold = config.thumbOverlapThreshold
+    , overlapThreshold = config.overlapThreshold
     , dragging = False
     , draggedValueType = None
     , rangeStartValue = 0
@@ -85,7 +84,6 @@ init config =
     , thumbParentWidth = 0
     , dragStartPosition = 0
     , formatter = config.formatter
-    , overMax = config.overMax
     }
 
 
@@ -195,9 +193,9 @@ update message model =
                             0
 
                 newModel =
-                    if (model.draggedValueType == LowValue && newValue + ((toFloat model.step) * model.thumbOverlapThreshold) > model.highValue) then
+                    if (model.draggedValueType == LowValue && newValue + ((toFloat model.step) * model.overlapThreshold) > model.highValue) then
                         model
-                    else if (model.draggedValueType == HighValue && newValue - ((toFloat model.step) * model.thumbOverlapThreshold) < model.lowValue) then
+                    else if (model.draggedValueType == HighValue && newValue - ((toFloat model.step) * model.overlapThreshold) < model.lowValue) then
                         model
                     else if newValue >= model.min && newValue <= model.max then
                         case model.draggedValueType of
@@ -230,15 +228,7 @@ formatCurrentValue model =
     if model.lowValue == model.min && model.highValue == model.max then
         ""
     else
-        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue) ++ (isOverMax model.overMax model.highValue model.max)
-
-
-isOverMax : Bool -> Float -> Float -> String
-isOverMax isOverMax maxValue currentHighValue =
-    if isOverMax && maxValue == currentHighValue then
-        "+"
-    else
-        ""
+        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue)
 
 
 snapValue : Float -> Int -> Float

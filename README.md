@@ -17,6 +17,7 @@ providing two thumbs with with values `lowValue` and `highValue`.
             , step = 50
             , lowValue = 50
             , highValue = 5000
+            , thumbOverlapThreshold = 1
             }
 ```
 
