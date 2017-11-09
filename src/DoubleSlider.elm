@@ -46,7 +46,7 @@ type alias Model =
     , thumbStartingPosition : Float
     , dragStartPosition : Float
     , thumbParentWidth : Float
-    , overlapThreshold : Float
+    , overlapThreshold : Int
     , formatter : Float -> String
     }
 
@@ -69,7 +69,7 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, overlapThreshold : Float, formatter : Float -> String, overMax : Bool } -> Model
+init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, overlapThreshold : Int, formatter : Float -> String, overMax : Bool } -> Model
 init config =
     { min = config.min
     , max = config.max
