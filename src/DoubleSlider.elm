@@ -221,7 +221,7 @@ update message model =
             )
 
 
-{-| format current value
+{-| renders the current values using the formatter
 -}
 formatCurrentValue : Model -> String
 formatCurrentValue model =
