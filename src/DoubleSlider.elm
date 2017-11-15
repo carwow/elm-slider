@@ -118,7 +118,7 @@ update message model =
                 newModel =
                     case valueType of
                         LowValue ->
-                            { model | lowValue = correctMin convertedValue model.lowValue model.min }
+                            { model | lowValue = convertedValue }
 
                         HighValue ->
                             { model | highValue = convertedValue }
@@ -236,14 +236,6 @@ snapValue value step =
     toFloat (((round value) // step) * step)
 
 
-correctMin : Float -> Float -> Float -> Float
-correctMin convertedValue lowValue minValue =
-    if convertedValue > lowValue then
-        convertedValue
-    else
-        convertedValue + minValue
-
-
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
 onOutsideRangeClick model =
     let
@@ -268,10 +260,14 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round (model.max / rectangle.width) * mouseX)
+                    let
+                        newValue =
+                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+                    in
+                        toString (round newValue)
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
-                (Json.Decode.at [ "offsetX" ] Json.Decode.int)
+                (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
         Json.Decode.map2 TrackClicked valueTypeDecoder valueDecoder
 
@@ -301,12 +297,6 @@ onInsideRangeClick model =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
-                        centerThreshold =
-                            rectangle.width / 2
-
-                        refValue =
-                            model.highValue - model.lowValue
-
                         newValue =
                             snapValue ((((model.highValue - model.lowValue) / rectangle.width) * mouseX) + model.lowValue) model.step
                     in
@@ -349,10 +339,10 @@ fallbackView model =
             round model.highValue
 
         progressRatio =
-            100 / model.max
+            100 / (model.max - model.min)
 
         progressLow =
-            toString (model.lowValue * progressRatio) ++ "%"
+            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         progressHigh =
             toString ((model.max - model.highValue) * progressRatio) ++ "%"
