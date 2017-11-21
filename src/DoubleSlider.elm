@@ -48,6 +48,7 @@ type alias Model =
     , thumbParentWidth : Float
     , overlapThreshold : Float
     , formatter : Float -> String
+    , ratio : Float
     }
 
 
@@ -84,6 +85,7 @@ init config =
     , thumbParentWidth = 0
     , dragStartPosition = 0
     , formatter = config.formatter
+    , ratio = 1
     }
 
 
@@ -146,6 +148,7 @@ update message model =
                                     0
                         , thumbStartingPosition = offsetLeft + 16
                         , thumbParentWidth = offsetWidth
+                        , ratio = model.max / offsetWidth
                         , dragStartPosition = (toFloat position.x)
                     }
             in
@@ -153,17 +156,6 @@ update message model =
 
         DragAt position ->
             let
-                rangeStart =
-                    case model.draggedValueType of
-                        HighValue ->
-                            model.rangeStartValue
-
-                        LowValue ->
-                            model.max - model.rangeStartValue - model.min
-
-                        None ->
-                            0
-
                 offset =
                     case model.draggedValueType of
                         HighValue ->
@@ -175,19 +167,16 @@ update message model =
                         None ->
                             0
 
-                ratio =
-                    rangeStart / offset
-
                 delta =
                     ((toFloat position.x) - model.dragStartPosition)
 
                 newValue =
                     case model.draggedValueType of
                         HighValue ->
-                            model.min + snapValue ((offset + delta) * ratio) model.step
+                            model.min + snapValue ((offset + delta) * model.ratio) model.step
 
                         LowValue ->
-                            model.min + snapValue ((model.thumbParentWidth - offset + delta) * ratio) model.step
+                            model.min + snapValue ((model.thumbStartingPosition + delta) * model.ratio) model.step
 
                         None ->
                             0
