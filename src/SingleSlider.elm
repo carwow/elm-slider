@@ -204,7 +204,7 @@ view : Model -> Html Msg
 view model =
     let
         progress_ratio =
-            100 / model.max
+            100 / (model.max - model.min)
 
         thumbStartingPosition =
             toString (model.value * progress_ratio) ++ "%"
