@@ -37,7 +37,7 @@ import Mouse exposing (Position)
 type alias Model =
     { min : Float
     , max : Float
-    , step : Int
+    , step : Float
     , value : Float
     , dragging : Bool
     , rangeStartValue : Float
@@ -57,7 +57,7 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, value : Float } -> Model
+init : { min : Float, max : Float, step : Float, value : Float } -> Model
 init config =
     { min = config.min
     , max = config.max
@@ -134,9 +134,13 @@ update message model =
                 )
 
 
-snapValue : Float -> Int -> Float
+snapValue : Float -> Float -> Float
 snapValue value step =
-    toFloat (((round value) // step) * step)
+    let
+        roundedStep =
+            round step
+    in
+        toFloat (((round value) // roundedStep) * roundedStep)
 
 
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
@@ -191,21 +195,26 @@ view model =
     in
         div
             [ Html.Attributes.class "input-range-container" ]
-            [ div
-                [ Html.Attributes.class "slider-thumb slider-thumb--first"
-                , Html.Attributes.style [ ( "left", thumbStartingPosition ) ]
-                , Html.Events.onWithOptions "mousedown" { preventDefault = True, stopPropagation = True } onThumbMouseDown
+            [ Html.input
+                [ Html.Attributes.type_ "range"
+                , Html.Attributes.min (toString model.min)
+                , Html.Attributes.max (toString model.max)
+                , Html.Attributes.value <| (toString model.value)
+                , Html.Attributes.step (toString model.step)
+                , Html.Attributes.class "input-range input-range--first"
+
+                -- , Html.Events.on "change" (onRangeChange LowValue True)
+                -- , Html.Events.on "input" (onRangeChange LowValue False)
                 ]
                 []
             , div
                 [ Html.Attributes.class "input-range__track"
-                , Html.Attributes.style [ ( "z-index", "1" ) ]
                 , Html.Events.on "click" (onOutsideRangeClick model)
                 ]
                 []
             , div
                 [ Html.Attributes.class "input-range__progress"
-                , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ), ( "z-index", "1" ) ]
+                , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
                 , Html.Events.on "click" (onInsideRangeClick model)
                 ]
                 []
