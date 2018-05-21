@@ -89,7 +89,10 @@ snapValue : Float -> Float -> Float
 snapValue value step =
     let
         roundedStep =
-            round step
+            if (round step) > 0 then
+                round step
+            else
+                1
     in
         toFloat (((round value) // roundedStep) * roundedStep)
 
@@ -100,7 +103,11 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.max / rectangle.width) * mouseX))
+                    let
+                        newValue =
+                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+                    in
+                        toString (round newValue)
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
