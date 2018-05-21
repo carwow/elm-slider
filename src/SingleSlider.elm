@@ -29,7 +29,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode exposing (map)
 import DOM exposing (boundingClientRect)
-import Mouse exposing (Position)
 
 
 {-| The base model for the slider
@@ -49,8 +48,6 @@ type alias Model =
 -}
 type Msg
     = TrackClicked String
-    | DragAt Position
-    | DragEnd Position
     | RangeChanged String Bool
 
 
@@ -92,42 +89,6 @@ update message model =
                     { model | value = convertedValue }
             in
                 ( newModel, Cmd.none, True )
-
-        DragAt position ->
-            let
-                delta =
-                    ((toFloat position.x) - model.dragStartPosition)
-
-                ratio =
-                    (model.rangeStartValue / model.thumbStartingPosition)
-
-                newValue =
-                    snapValue ((model.thumbStartingPosition + delta) * ratio) model.step
-
-                newModel =
-                    if newValue >= model.min && newValue <= model.max then
-                        { model | value = newValue }
-                    else
-                        model
-            in
-                ( newModel, Cmd.none, False )
-
-        DragEnd position ->
-            let
-                _ =
-                    Debug.log "position" position
-
-                _ =
-                    Debug.log "model" model
-            in
-                ( { model
-                    | rangeStartValue = 0
-                    , thumbStartingPosition = 0
-                    , dragStartPosition = 0
-                  }
-                , Cmd.none
-                , True
-                )
 
 
 snapValue : Float -> Float -> Float
