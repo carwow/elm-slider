@@ -38,9 +38,6 @@ type alias Model =
     , max : Float
     , step : Float
     , value : Float
-    , rangeStartValue : Float
-    , thumbStartingPosition : Float
-    , dragStartPosition : Float
     }
 
 
@@ -59,9 +56,6 @@ init config =
     , max = config.max
     , step = config.step
     , value = config.value
-    , rangeStartValue = 0
-    , thumbStartingPosition = 0
-    , dragStartPosition = 0
     }
 
 
@@ -143,9 +137,6 @@ view model =
     let
         progress_ratio =
             100 / (model.max - model.min)
-
-        thumbStartingPosition =
-            toString (model.value * progress_ratio) ++ "%"
 
         progress =
             toString ((model.max - model.value) * progress_ratio) ++ "%"
