@@ -39,7 +39,6 @@ type alias Model =
     , max : Float
     , step : Float
     , value : Float
-    , dragging : Bool
     , rangeStartValue : Float
     , thumbStartingPosition : Float
     , dragStartPosition : Float
@@ -63,7 +62,6 @@ init config =
     , max = config.max
     , step = config.step
     , value = config.value
-    , dragging = False
     , rangeStartValue = 0
     , thumbStartingPosition = 0
     , dragStartPosition = 0
@@ -123,8 +121,7 @@ update message model =
                     Debug.log "model" model
             in
                 ( { model
-                    | dragging = False
-                    , rangeStartValue = 0
+                    | rangeStartValue = 0
                     , thumbStartingPosition = 0
                     , dragStartPosition = 0
                   }
@@ -235,7 +232,4 @@ view model =
 -}
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.dragging then
-        Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
-    else
-        Sub.none
+    Sub.none
