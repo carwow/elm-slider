@@ -221,7 +221,7 @@ view model =
                     , Html.Attributes.max (toString model.max)
                     , Html.Attributes.value <| (toString model.value)
                     , Html.Attributes.step (toString model.step)
-                    , Html.Attributes.class "input-range input-range--first"
+                    , Html.Attributes.class "input-range"
                     , Html.Events.on "change" (onRangeChange True)
                     , Html.Events.on "input" (onRangeChange False)
                     ]
