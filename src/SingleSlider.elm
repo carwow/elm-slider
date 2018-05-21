@@ -50,7 +50,6 @@ type alias Model =
 -}
 type Msg
     = TrackClicked String
-    | DragStart Position Float
     | DragAt Position
     | DragEnd Position
     | RangeChanged String Bool
@@ -95,17 +94,6 @@ update message model =
                     { model | value = convertedValue }
             in
                 ( newModel, Cmd.none, True )
-
-        DragStart position offsetLeft ->
-            ( { model
-                | dragging = True
-                , rangeStartValue = model.value
-                , thumbStartingPosition = offsetLeft + 8
-                , dragStartPosition = (toFloat position.x)
-              }
-            , Cmd.none
-            , False
-            )
 
         DragAt position ->
             let
@@ -180,14 +168,6 @@ onInsideRangeClick model =
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
         Json.Decode.map TrackClicked valueDecoder
-
-
-onThumbMouseDown : Json.Decode.Decoder Msg
-onThumbMouseDown =
-    Json.Decode.map2
-        DragStart
-        Mouse.position
-        (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
 
 
 onRangeChange : Bool -> Json.Decode.Decoder Msg
