@@ -53,6 +53,7 @@ type Msg
     | DragStart Position Float
     | DragAt Position
     | DragEnd Position
+    | RangeChanged String Bool
 
 
 {-| Returns a default range slider
@@ -75,6 +76,16 @@ init config =
 update : Msg -> Model -> ( Model, Cmd Msg, Bool )
 update message model =
     case message of
+        RangeChanged newValue shouldFetchModels ->
+            let
+                convertedValue =
+                    String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0
+
+                newModel =
+                    { model | value = convertedValue }
+            in
+                ( newModel, Cmd.none, shouldFetchModels )
+
         TrackClicked newValue ->
             let
                 convertedValue =
@@ -179,6 +190,14 @@ onThumbMouseDown =
         (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
 
 
+onRangeChange : Bool -> Json.Decode.Decoder Msg
+onRangeChange shouldFetchModels =
+    Json.Decode.map2
+        RangeChanged
+        targetValue
+        (Json.Decode.succeed shouldFetchModels)
+
+
 {-| Displays the slider
 -}
 view : Model -> Html Msg
@@ -193,31 +212,38 @@ view model =
         progress =
             toString ((model.max - model.value) * progress_ratio) ++ "%"
     in
-        div
-            [ Html.Attributes.class "input-range-container" ]
-            [ Html.input
-                [ Html.Attributes.type_ "range"
-                , Html.Attributes.min (toString model.min)
-                , Html.Attributes.max (toString model.max)
-                , Html.Attributes.value <| (toString model.value)
-                , Html.Attributes.step (toString model.step)
-                , Html.Attributes.class "input-range input-range--first"
-
-                -- , Html.Events.on "change" (onRangeChange LowValue True)
-                -- , Html.Events.on "input" (onRangeChange LowValue False)
+        div []
+            [ div
+                [ Html.Attributes.class "input-range-container" ]
+                [ Html.input
+                    [ Html.Attributes.type_ "range"
+                    , Html.Attributes.min (toString model.min)
+                    , Html.Attributes.max (toString model.max)
+                    , Html.Attributes.value <| (toString model.value)
+                    , Html.Attributes.step (toString model.step)
+                    , Html.Attributes.class "input-range input-range--first"
+                    , Html.Events.on "change" (onRangeChange True)
+                    , Html.Events.on "input" (onRangeChange False)
+                    ]
+                    []
+                , div
+                    [ Html.Attributes.class "input-range__track"
+                    , Html.Events.on "click" (onOutsideRangeClick model)
+                    ]
+                    []
+                , div
+                    [ Html.Attributes.class "input-range__progress"
+                    , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
+                    , Html.Events.on "click" (onInsideRangeClick model)
+                    ]
+                    []
                 ]
-                []
             , div
-                [ Html.Attributes.class "input-range__track"
-                , Html.Events.on "click" (onOutsideRangeClick model)
+                [ Html.Attributes.class "input-range-labels-container" ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (toString model.min) ]
+                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ] [ Html.text (toString model.value) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (toString model.max) ]
                 ]
-                []
-            , div
-                [ Html.Attributes.class "input-range__progress"
-                , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
-                , Html.Events.on "click" (onInsideRangeClick model)
-                ]
-                []
             ]
 
 
