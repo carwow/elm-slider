@@ -85,6 +85,27 @@ update message model =
                 ( newModel, Cmd.none, True )
 
 
+closestStep : Float -> Float -> Int
+closestStep value step =
+    let
+        roundedValue =
+            round value
+
+        roundedStep =
+            if (round step) > 0 then
+                round step
+            else
+                1
+
+        remainder =
+            rem roundedValue roundedStep
+    in
+        if remainder > (roundedStep // 2) then
+            (roundedValue - remainder) + roundedStep
+        else
+            (roundedValue - remainder)
+
+
 snapValue : Float -> Float -> Float
 snapValue value step =
     let
@@ -104,10 +125,13 @@ onOutsideRangeClick model =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
-                        newValue =
+                        clickedValue =
                             (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+
+                        newValue =
+                            closestStep clickedValue model.step
                     in
-                        toString (round newValue)
+                        toString newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
