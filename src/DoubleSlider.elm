@@ -24,12 +24,13 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 
 -}
 
+import Browser
 import Html exposing (Html, div, input)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode exposing (map)
 import DOM exposing (boundingClientRect)
-import Mouse exposing (Position)
+import Mouse exposing (..)
 
 
 {-| The base model for the slider
@@ -95,7 +96,7 @@ update message model =
         RangeChanged valueType newValue shouldFetchModels ->
             let
                 convertedValue =
-                    String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0
+                    String.toFloat newValue |> Maybe.withDefault 0
 
                 newModel =
                     case valueType of
@@ -113,7 +114,7 @@ update message model =
         TrackClicked valueType newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
 
                 newModel =
                     case valueType of
@@ -264,7 +265,7 @@ onOutsideRangeClick model =
                         newValue =
                             (((model.max - model.min) / rectangle.width) * mouseX) + model.min
                     in
-                        toString (round newValue)
+                        String.fromInt (round newValue)
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -300,7 +301,7 @@ onInsideRangeClick model =
                         newValue =
                             snapValue ((((model.highValue - model.lowValue) / rectangle.width) * mouseX) + model.lowValue) model.step
                     in
-                        toString (round newValue)
+                        String.fromInt (round newValue)
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -313,7 +314,7 @@ onThumbMouseDown valueType =
     Json.Decode.map4
         DragStart
         (Json.Decode.succeed valueType)
-        Mouse.position
+        positionDecoder
         (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
         (Json.Decode.at [ "target", "offsetParent", "offsetWidth" ] Json.Decode.float)
 
@@ -342,20 +343,20 @@ fallbackView model =
             100 / (model.max - model.min)
 
         progressLow =
-            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
+            String.fromFloat ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         progressHigh =
-            toString ((model.max - model.highValue) * progressRatio) ++ "%"
+            String.fromFloat ((model.max - model.highValue) * progressRatio) ++ "%"
     in
         div []
             [ div
                 [ Html.Attributes.class "input-range-container" ]
                 [ Html.input
                     [ Html.Attributes.type_ "range"
-                    , Html.Attributes.min (toString model.min)
-                    , Html.Attributes.max (toString model.max)
-                    , Html.Attributes.value <| (toString model.lowValue)
-                    , Html.Attributes.step (toString model.step)
+                    , Html.Attributes.min (String.fromFloat model.min)
+                    , Html.Attributes.max (String.fromFloat model.max)
+                    , Html.Attributes.value <| (String.fromFloat model.lowValue)
+                    , Html.Attributes.step (String.fromInt model.step)
                     , Html.Attributes.class "input-range input-range--first"
                     , Html.Events.on "change" (onRangeChange LowValue True)
                     , Html.Events.on "input" (onRangeChange LowValue False)
@@ -363,10 +364,10 @@ fallbackView model =
                     []
                 , Html.input
                     [ Html.Attributes.type_ "range"
-                    , Html.Attributes.min (toString model.min)
-                    , Html.Attributes.max (toString model.max)
-                    , Html.Attributes.value <| (toString model.highValue)
-                    , Html.Attributes.step (toString model.step)
+                    , Html.Attributes.min (String.fromFloat model.min)
+                    , Html.Attributes.max (String.fromFloat model.max)
+                    , Html.Attributes.value <| (String.fromFloat model.highValue)
+                    , Html.Attributes.step (String.fromInt model.step)
                     , Html.Attributes.class "input-range input-range--second"
                     , Html.Events.on "change" (onRangeChange HighValue True)
                     , Html.Events.on "input" (onRangeChange HighValue False)
@@ -379,7 +380,8 @@ fallbackView model =
                     []
                 , div
                     [ Html.Attributes.class "input-range__progress"
-                    , Html.Attributes.style [ ( "left", progressLow ), ( "right", progressHigh ) ]
+                    , Html.Attributes.style "left" progressLow
+                    , Html.Attributes.style "right" progressHigh
                     , Html.Events.on "click" (onInsideRangeClick model)
                     ]
                     []
@@ -408,30 +410,37 @@ view model =
             100 / (model.max - model.min)
 
         lowThumbStartingPosition =
-            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
+            String.fromFloat ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         highThumbStartingPosition =
-            toString ((model.highValue - model.min) * progressRatio) ++ "%"
+            String.fromFloat ((model.highValue - model.min) * progressRatio) ++ "%"
 
         progressLow =
-            toString ((model.lowValue - model.min) * progressRatio) ++ "%"
+            String.fromFloat ((model.lowValue - model.min) * progressRatio) ++ "%"
 
         progressHigh =
-            toString ((model.max - model.highValue) * progressRatio) ++ "%"
+            String.fromFloat ((model.max - model.highValue) * progressRatio) ++ "%"
+
+        mouseDownEvent t =
+            onThumbMouseDown t
+                |> Json.Decode.map (\msg -> { message = msg, stopPropagation = True, preventDefault = True })
+                |> Html.Events.custom "mousedown"
     in
         div []
             [ div
                 [ Html.Attributes.class "input-range-container" ]
                 [ div
                     [ Html.Attributes.class "slider-thumb slider-thumb--first"
-                    , Html.Attributes.style [ ( "left", lowThumbStartingPosition ), ( "float", "left" ) ]
-                    , Html.Events.onWithOptions "mousedown" { preventDefault = True, stopPropagation = True } (onThumbMouseDown LowValue)
+                    , Html.Attributes.style "left" lowThumbStartingPosition
+                    , Html.Attributes.style "float" "left"
+                    , mouseDownEvent LowValue
                     ]
                     []
                 , div
                     [ Html.Attributes.class "slider-thumb slider-thumb--second"
-                    , Html.Attributes.style [ ( "left", highThumbStartingPosition ), ( "float", "left" ) ]
-                    , Html.Events.onWithOptions "mousedown" { preventDefault = True, stopPropagation = True } (onThumbMouseDown HighValue)
+                    , Html.Attributes.style "left" highThumbStartingPosition
+                    , Html.Attributes.style "float" "left"
+                    , mouseDownEvent HighValue
                     ]
                     []
                 , div
@@ -441,7 +450,8 @@ view model =
                     []
                 , div
                     [ Html.Attributes.class "input-range__progress"
-                    , Html.Attributes.style [ ( "left", progressLow ), ( "right", progressHigh ) ]
+                    , Html.Attributes.style "left" progressLow
+                    , Html.Attributes.style "right" progressHigh
                     , Html.Events.on "click" (onInsideRangeClick model)
                     ]
                     []
@@ -459,6 +469,18 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.dragging then
-        Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
+        let
+            moveDecoder : Json.Decode.Decoder Msg
+            moveDecoder =
+                Json.Decode.map DragAt positionDecoder
+
+            upDecoder : Json.Decode.Decoder Msg
+            upDecoder =
+                Json.Decode.map DragEnd positionDecoder
+        in
+            Sub.batch
+                [ Browser.onDocument "mousemove" moveDecoder
+                , Browser.onDocument "mouseup" upDecoder
+                ]
     else
         Sub.none

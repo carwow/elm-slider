@@ -24,12 +24,13 @@ module SingleSlider exposing (Model, Msg, init, update, subscriptions, view)
 
 -}
 
+import Browser
 import Html exposing (Html, div, input)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode exposing (map)
 import DOM exposing (boundingClientRect)
-import Mouse exposing (Position)
+import Mouse exposing (..)
 
 
 {-| The base model for the slider
@@ -78,28 +79,28 @@ update message model =
         TrackClicked newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
 
                 newModel =
                     { model | value = convertedValue }
             in
                 ( newModel, Cmd.none, True )
 
-        DragStart position offsetLeft ->
+        DragStart { x, y } offsetLeft ->
             ( { model
                 | dragging = True
                 , rangeStartValue = model.value
                 , thumbStartingPosition = offsetLeft + 8
-                , dragStartPosition = (toFloat position.x)
+                , dragStartPosition = (toFloat x)
               }
             , Cmd.none
             , False
             )
 
-        DragAt position ->
+        DragAt { x, y } ->
             let
                 delta =
-                    ((toFloat position.x) - model.dragStartPosition)
+                    ((toFloat x) - model.dragStartPosition)
 
                 ratio =
                     (model.rangeStartValue / model.thumbStartingPosition)
@@ -115,23 +116,16 @@ update message model =
             in
                 ( newModel, Cmd.none, False )
 
-        DragEnd position ->
-            let
-                _ =
-                    Debug.log "position" position
-
-                _ =
-                    Debug.log "model" model
-            in
-                ( { model
-                    | dragging = False
-                    , rangeStartValue = 0
-                    , thumbStartingPosition = 0
-                    , dragStartPosition = 0
-                  }
-                , Cmd.none
-                , True
-                )
+        DragEnd _ ->
+            ( { model
+                | dragging = False
+                , rangeStartValue = 0
+                , thumbStartingPosition = 0
+                , dragStartPosition = 0
+              }
+            , Cmd.none
+            , True
+            )
 
 
 snapValue : Float -> Int -> Float
@@ -145,7 +139,7 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.max / rectangle.width) * mouseX))
+                    String.fromInt (round ((model.max / rectangle.width) * mouseX))
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -159,20 +153,12 @@ onInsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.value / rectangle.width) * mouseX))
+                    String.fromInt (round ((model.value / rectangle.width) * mouseX))
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
         Json.Decode.map TrackClicked valueDecoder
-
-
-onThumbMouseDown : Json.Decode.Decoder Msg
-onThumbMouseDown =
-    Json.Decode.map2
-        DragStart
-        Mouse.position
-        (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
 
 
 {-| Displays the slider
@@ -184,28 +170,42 @@ view model =
             100 / model.max
 
         thumbStartingPosition =
-            toString (model.value * progress_ratio) ++ "%"
+            String.fromFloat (model.value * progress_ratio) ++ "%"
 
         progress =
-            toString ((model.max - model.value) * progress_ratio) ++ "%"
+            String.fromFloat ((model.max - model.value) * progress_ratio) ++ "%"
+
+        onThumbMouseDown : Json.Decode.Decoder Msg
+        onThumbMouseDown =
+            Json.Decode.map2
+                DragStart
+                positionDecoder
+                (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
+
+        mouseDownEvent =
+            onThumbMouseDown
+                |> Json.Decode.map (\msg -> { message = msg, stopPropagation = True, preventDefault = True })
+                |> Html.Events.custom "mousedown"
     in
         div
             [ Html.Attributes.class "input-range-container" ]
             [ div
                 [ Html.Attributes.class "slider-thumb slider-thumb--first"
-                , Html.Attributes.style [ ( "left", thumbStartingPosition ) ]
-                , Html.Events.onWithOptions "mousedown" { preventDefault = True, stopPropagation = True } onThumbMouseDown
+                , Html.Attributes.style "left" thumbStartingPosition
+                , mouseDownEvent
                 ]
                 []
             , div
                 [ Html.Attributes.class "input-range__track"
-                , Html.Attributes.style [ ( "z-index", "1" ) ]
+                , Html.Attributes.style "z-index" "1"
                 , Html.Events.on "click" (onOutsideRangeClick model)
                 ]
                 []
             , div
                 [ Html.Attributes.class "input-range__progress"
-                , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ), ( "z-index", "1" ) ]
+                , Html.Attributes.style "left" "0"
+                , Html.Attributes.style "right" progress
+                , Html.Attributes.style "z-index" "1"
                 , Html.Events.on "click" (onInsideRangeClick model)
                 ]
                 []
@@ -221,6 +221,18 @@ view model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     if model.dragging then
-        Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
+        let
+            moveDecoder : Json.Decode.Decoder Msg
+            moveDecoder =
+                Json.Decode.map DragAt positionDecoder
+
+            upDecoder : Json.Decode.Decoder Msg
+            upDecoder =
+                Json.Decode.map DragEnd positionDecoder
+        in
+            Sub.batch
+                [ Browser.onDocument "mousemove" moveDecoder
+                , Browser.onDocument "mouseup" upDecoder
+                ]
     else
         Sub.none
