@@ -1,4 +1,4 @@
-module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, formatCurrentValue)
+module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, Config)
 
 {-| A single slider built natively in Elm
 
@@ -20,7 +20,7 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 
 # View
 
-@docs view, fallbackView, formatCurrentValue
+@docs view, fallbackView
 
 -}
 
@@ -47,7 +47,22 @@ type alias Model =
     , dragStartPosition : Float
     , thumbParentWidth : Float
     , overlapThreshold : Float
-    , formatter : Float -> String
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentRangeFormatter : Float -> Float -> Float -> Float -> String
+    }
+
+
+type alias Config =
+    { min : Float
+    , max : Float
+    , step : Int
+    , lowValue : Float
+    , highValue : Float
+    , overlapThreshold : Float
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentRangeFormatter : Float -> Float -> Float -> Float -> String
     }
 
 
@@ -69,7 +84,7 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, overlapThreshold : Float, formatter : Float -> String } -> Model
+init : Config -> Model
 init config =
     { min = config.min
     , max = config.max
@@ -83,7 +98,9 @@ init config =
     , thumbStartingPosition = 0
     , thumbParentWidth = 0
     , dragStartPosition = 0
-    , formatter = config.formatter
+    , minFormatter = config.minFormatter
+    , maxFormatter = config.maxFormatter
+    , currentRangeFormatter = config.currentRangeFormatter
     }
 
 
@@ -219,16 +236,6 @@ update message model =
             , Cmd.none
             , True
             )
-
-
-{-| renders the current values using the formatter
--}
-formatCurrentValue : Model -> String
-formatCurrentValue model =
-    if model.lowValue == model.min && model.highValue == model.max then
-        ""
-    else
-        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue)
 
 
 snapValue : Float -> Int -> Float
@@ -386,11 +393,21 @@ fallbackView model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.min) ]
-                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ] [ Html.text (formatCurrentValue model) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.max) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div
+                    [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                    [ Html.text (formatCurrentRange model) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
+
+
+formatCurrentRange : Model -> String
+formatCurrentRange model =
+    if model.lowValue == model.min && model.highValue == model.max then
+        ""
+    else
+        model.currentRangeFormatter model.lowValue model.highValue model.min model.max
 
 
 {-| Displays the slider
@@ -448,8 +465,8 @@ view model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.min) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.max) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
 
