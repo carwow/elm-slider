@@ -5,7 +5,7 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 
 # Model
 
-@docs Model
+@docs Model, Config
 
 
 # Update
