@@ -1,4 +1,4 @@
-module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, Config)
+module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, formatCurrentRange, Config)
 
 {-| A single slider built natively in Elm
 
