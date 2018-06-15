@@ -20,7 +20,7 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 
 # View
 
-@docs view, fallbackView
+@docs view, fallbackView, formatCurrentRange
 
 -}
 
@@ -53,6 +53,8 @@ type alias Model =
     }
 
 
+{-| Slider config
+-}
 type alias Config =
     { min : Float
     , max : Float
@@ -402,6 +404,8 @@ fallbackView model =
             ]
 
 
+{-| Renders the current values using the formatter
+-}
 formatCurrentRange : Model -> String
 formatCurrentRange model =
     if model.lowValue == model.min && model.highValue == model.max then
