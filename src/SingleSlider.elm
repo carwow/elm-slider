@@ -38,6 +38,9 @@ type alias Model =
     , max : Float
     , step : Float
     , value : Float
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentValueFormatter : Float -> Float -> String
     }
 
 
@@ -48,15 +51,39 @@ type Msg
     | RangeChanged String Bool
 
 
+{-| Slider config
+-}
+type alias Config =
+    { min : Float
+    , max : Float
+    , step : Float
+    , value : Float
+    , minFormatter : Maybe (Float -> String)
+    , maxFormatter : Maybe (Float -> String)
+    , currentValueFormatter : Maybe (Float -> Float -> String)
+    }
+
+
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Float, value : Float } -> Model
+init : Config -> Model
 init config =
     { min = config.min
     , max = config.max
     , step = config.step
     , value = config.value
+    , minFormatter = Maybe.withDefault toString config.minFormatter
+    , maxFormatter = Maybe.withDefault toString config.maxFormatter
+    , currentValueFormatter = Maybe.withDefault defaultCurrentValueFormatter config.currentValueFormatter
     }
+
+
+defaultCurrentValueFormatter : Float -> Float -> String
+defaultCurrentValueFormatter currentValue max =
+    if currentValue == max then
+        ""
+    else
+        toString currentValue
 
 
 {-| takes a model and a message and applies it to create an updated model
@@ -200,9 +227,9 @@ view model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (toString model.min) ]
-                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ] [ Html.text (toString model.value) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (toString model.max) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ] [ Html.text (model.currentValueFormatter model.value model.max) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
 
