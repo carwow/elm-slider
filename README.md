@@ -6,31 +6,81 @@ elm package install carwow/elm-slider
 
 ## Usage
 
-The `DoubleSlider.init` function creates a double range slider which handles values from `min` to `max` with a `step`,
-providing two thumbs with with values `lowValue` and `highValue`.
+You can create a double slider model which handles values from `min` to `max` with a `step`, providing two thumbs with with values `lowValue` and `highValue`.
 
 ```elm
-    slider =
-        DoubleSlider.init
-            { min = 50
+    let
+        initialSliderModel =
+            DoubleSlider.defaultModel
+    in
+        { initialSliderModel
+            | min = 50
             , max = 5000
             , step = 50
             , lowValue = 50
             , highValue = 5000
-            , thumbOverlapThreshold = 1
-            }
+        }
 ```
 
-The `SingleSlider.init` function creates a range slider which handles values from `min` to `max` with a `step`.
+Default formatters for the `min`, `max` and `current range` will be applied unless custom formatters are provided as the following:
 
 ```elm
-    slider =
-        SingleSlider.init
-            { min = 50
+    let
+        initialSliderModel =
+            DoubleSlider.defaultModel
+    in
+        { initialSliderModel
+            | min = 50
+            , max = 5000
+            , step = 50
+            , lowValue = 50
+            , highValue = 5000
+            , minFormatter = toString
+            , maxFormatter = toString
+            , currentRangeFormatter = customRangeFormatter
+        }
+```
+
+where:
+
+```elm
+    customRangeFormatter : Float -> Float -> Float -> Float -> String
+    customRangeFormatter lowValue highValue min max =
+        ...
+```
+
+You can create a single slider model which handles values from `min` to `max` with a `step`. Custom formatters for the `min`, `max` and `current value` can also be provided. If you're happy with the default formatters just pass `Nothing` as the following example:
+
+```elm
+    let
+        initialSliderModel =
+            SingleSlider.defaultModel
+    in
+        { initialSliderModel
+            | min = 50
             , max = 5000
             , step = 50
             , value = 2000
-            }
+        }
+```
+
+Default formatters for the `min`, `max` and `current value` will be applied unless custom formatters are provided as the following:
+
+```elm
+    let
+        initialSliderModel =
+            SingleSlider.defaultModel
+    in
+        { initialSliderModel
+            | min = 50
+            , max = 5000
+            , step = 50
+            , lowValue = 50
+            , highValue = 5000
+            , minFormatter = toString
+            , maxFormatter = toString
+            , currentValueFormatter = toString
+        }
 ```
 
 Because it uses mouse movements, the range slider requires subscriptions. After initialization, handle the subscriptions.

@@ -1,11 +1,11 @@
-module SingleSlider exposing (Model, Msg, update, subscriptions, view)
+module SingleSlider exposing (Model, Msg, update, subscriptions, view, defaultModel)
 
 {-| A single slider built natively in Elm
 
 
 # Model
 
-@docs Model
+@docs Model, defaultModel
 
 
 # Update
@@ -33,9 +33,9 @@ type alias Model =
     , max : Float
     , step : Float
     , value : Float
-    , minFormatter : Maybe (Float -> String)
-    , maxFormatter : Maybe (Float -> String)
-    , currentValueFormatter : Maybe (Float -> Float -> String)
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentValueFormatter : Float -> Float -> String
     }
 
 
@@ -44,6 +44,20 @@ type alias Model =
 type Msg
     = TrackClicked String
     | RangeChanged String Bool
+
+
+{-| Default model
+-}
+defaultModel : Model
+defaultModel =
+    { min = 0
+    , max = 100
+    , step = 10
+    , value = 0
+    , minFormatter = toString
+    , maxFormatter = toString
+    , currentValueFormatter = defaultCurrentValueFormatter
+    }
 
 
 {-| Default formatter for the current value
@@ -197,10 +211,10 @@ view model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text ((Maybe.withDefault toString model.minFormatter) model.min) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
                 , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                    [ Html.text ((Maybe.withDefault defaultCurrentValueFormatter model.currentValueFormatter) model.value model.max) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text ((Maybe.withDefault toString model.minFormatter) model.max) ]
+                    [ Html.text (model.currentValueFormatter model.value model.max) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.max) ]
                 ]
             ]
 
