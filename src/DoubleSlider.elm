@@ -1,21 +1,16 @@
-module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, formatCurrentRange, Config)
+module DoubleSlider exposing (Model, Msg, update, subscriptions, view, fallbackView, formatCurrentRange, defaultModel)
 
 {-| A single slider built natively in Elm
 
 
 # Model
 
-@docs Model, Config
+@docs Model, defaultModel
 
 
 # Update
 
 @docs Msg, update, subscriptions
-
-
-# Configuring the slider
-
-@docs init
 
 
 # View
@@ -53,21 +48,6 @@ type alias Model =
     }
 
 
-{-| Slider config
--}
-type alias Config =
-    { min : Float
-    , max : Float
-    , step : Int
-    , lowValue : Float
-    , highValue : Float
-    , overlapThreshold : Float
-    , minFormatter : Float -> String
-    , maxFormatter : Float -> String
-    , currentRangeFormatter : Float -> Float -> Float -> Float -> String
-    }
-
-
 type SliderValueType
     = LowValue
     | HighValue
@@ -86,24 +66,29 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : Config -> Model
-init config =
-    { min = config.min
-    , max = config.max
-    , step = config.step
-    , lowValue = config.lowValue
-    , highValue = config.highValue
-    , overlapThreshold = config.overlapThreshold
+defaultModel : Model
+defaultModel =
+    { min = 0
+    , max = 100
+    , step = 10
+    , lowValue = 0
+    , highValue = 100
+    , overlapThreshold = 1
     , dragging = False
     , draggedValueType = None
     , rangeStartValue = 0
     , thumbStartingPosition = 0
     , thumbParentWidth = 0
     , dragStartPosition = 0
-    , minFormatter = config.minFormatter
-    , maxFormatter = config.maxFormatter
-    , currentRangeFormatter = config.currentRangeFormatter
+    , minFormatter = toString
+    , maxFormatter = toString
+    , currentRangeFormatter = defaultCurrentRangeFormatter
     }
+
+
+defaultCurrentRangeFormatter : Float -> Float -> Float -> Float -> String
+defaultCurrentRangeFormatter lowValue highValue min max =
+    String.join " " [ (toString lowValue), "-", (toString highValue) ]
 
 
 {-| takes a model and a message and applies it to create an updated model
