@@ -46,6 +46,8 @@ type Msg
     | RangeChanged String Bool
 
 
+{-| Default formatter for the current value
+-}
 defaultCurrentValueFormatter : Float -> Float -> String
 defaultCurrentValueFormatter currentValue max =
     if currentValue == max then
