@@ -148,11 +148,15 @@ type alias Model =
 
 slider : Slider.Model
 slider =
-  Slider.init
-    { min = 0
-    , max = 10
-    , step = 1
-    , value = 0
+  let
+    initialSlider =
+      Slider.defaultModel
+  in
+    { initialSlider
+        | min = 0
+        , max = 10
+        , step = 1
+        , value = 0
     }
 
 initialModel : Model
