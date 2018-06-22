@@ -79,8 +79,16 @@ Default formatters for the `min`, `max` and `current value` will be applied unle
             , highValue = 5000
             , minFormatter = toString
             , maxFormatter = toString
-            , currentValueFormatter = toString
+            , currentValueFormatter = customValueFormatter
         }
+```
+
+where:
+
+```elm
+    customValueFormatter : Float -> Float -> String
+    customValueFormatter currentValue max =
+        ...
 ```
 
 Because it uses mouse movements, the range slider requires subscriptions. After initialization, handle the subscriptions.
