@@ -78,8 +78,78 @@ DoubleSlider.fallbackView model.slider |> Html.map SliderMsg
 ```
 
 ## Example
+```elm
+module Thing exposing (init, update, subscriptions, view, Model, Msg)
 
-[...]
+import Html exposing (Html, div, text)
+import SingleSlider as Slider exposing (..)
+
+type alias Model =
+  { slider : Slider.Model
+  }
+
+slider : Slider.Model
+slider =
+  Slider.init
+    { min = 0
+    , max = 10
+    , step = 1
+    , value = 0
+    }
+
+initialModel : Model
+initialModel =
+  { slider = slider
+  }
+
+type Msg
+  = SliderMsg Slider.Msg
+
+
+-- INIT
+init : (Model, Cmd Msg)
+init =
+  (initialModel, Cmd.none)
+
+
+-- UPDATE
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    SliderMsg sliderMsg ->
+      let
+        ( newSlider, cmd, updateResults ) =
+          Slider.update sliderMsg model.slider
+
+        newModel =
+          { model | slider = newSlider }
+
+        newCmd =
+          if updateResults then
+            Cmd.batch [ Cmd.map SliderMsg cmd, Cmd.none ]
+          else
+            Cmd.none
+      in
+        ( newModel, newCmd )
+
+
+-- SUBSCRIPTIONS
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.batch
+    [ Sub.map SliderMsg <|
+      Slider.subscriptions model.slider
+    ]
+
+
+-- VIEW
+view : Model -> Html Msg
+view model =
+  div
+    []
+    [ Slider.view model.slider |> Html.map SliderMsg ]
+
+```
 
 
 ## Css
