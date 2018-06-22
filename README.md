@@ -49,7 +49,7 @@ where:
         ...
 ```
 
-You can create a single slider model which handles values from `min` to `max` with a `step`. Custom formatters for the `min`, `max` and `current value` can also be provided. If you're happy with the default formatters just pass `Nothing` as the following example:
+You can create a single slider model which handles values from `min` to `max` with a `step` and a `value`.
 
 ```elm
     let
