@@ -214,7 +214,7 @@ view model =
                 [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
                 , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
                     [ Html.text (model.currentValueFormatter model.value model.max) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.max) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
 
