@@ -1,21 +1,16 @@
-module SingleSlider exposing (Model, Msg, init, update, subscriptions, view)
+module SingleSlider exposing (Model, Msg, update, subscriptions, view, defaultModel)
 
 {-| A single slider built natively in Elm
 
 
 # Model
 
-@docs Model
+@docs Model, defaultModel
 
 
 # Update
 
 @docs Msg, update, subscriptions
-
-
-# Configuring the slider
-
-@docs init
 
 
 # View
@@ -29,7 +24,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode exposing (map)
 import DOM exposing (boundingClientRect)
-import Mouse exposing (Position)
 
 
 {-| The base model for the slider
@@ -37,12 +31,11 @@ import Mouse exposing (Position)
 type alias Model =
     { min : Float
     , max : Float
-    , step : Int
+    , step : Float
     , value : Float
-    , dragging : Bool
-    , rangeStartValue : Float
-    , thumbStartingPosition : Float
-    , dragStartPosition : Float
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentValueFormatter : Float -> Float -> String
     }
 
 
@@ -50,24 +43,31 @@ type alias Model =
 -}
 type Msg
     = TrackClicked String
-    | DragStart Position Float
-    | DragAt Position
-    | DragEnd Position
+    | RangeChanged String Bool
 
 
-{-| Returns a default range slider
+{-| Default model
 -}
-init : { min : Float, max : Float, step : Int, value : Float } -> Model
-init config =
-    { min = config.min
-    , max = config.max
-    , step = config.step
-    , value = config.value
-    , dragging = False
-    , rangeStartValue = 0
-    , thumbStartingPosition = 0
-    , dragStartPosition = 0
+defaultModel : Model
+defaultModel =
+    { min = 0
+    , max = 100
+    , step = 10
+    , value = 0
+    , minFormatter = toString
+    , maxFormatter = toString
+    , currentValueFormatter = defaultCurrentValueFormatter
     }
+
+
+{-| Default formatter for the current value
+-}
+defaultCurrentValueFormatter : Float -> Float -> String
+defaultCurrentValueFormatter currentValue max =
+    if currentValue == max then
+        ""
+    else
+        toString currentValue
 
 
 {-| takes a model and a message and applies it to create an updated model
@@ -75,6 +75,16 @@ init config =
 update : Msg -> Model -> ( Model, Cmd Msg, Bool )
 update message model =
     case message of
+        RangeChanged newValue shouldFetchModels ->
+            let
+                convertedValue =
+                    String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0
+
+                newModel =
+                    { model | value = convertedValue }
+            in
+                ( newModel, Cmd.none, shouldFetchModels )
+
         TrackClicked newValue ->
             let
                 convertedValue =
@@ -85,58 +95,38 @@ update message model =
             in
                 ( newModel, Cmd.none, True )
 
-        DragStart position offsetLeft ->
-            ( { model
-                | dragging = True
-                , rangeStartValue = model.value
-                , thumbStartingPosition = offsetLeft + 8
-                , dragStartPosition = (toFloat position.x)
-              }
-            , Cmd.none
-            , False
-            )
 
-        DragAt position ->
-            let
-                delta =
-                    ((toFloat position.x) - model.dragStartPosition)
+closestStep : Float -> Float -> Int
+closestStep value step =
+    let
+        roundedValue =
+            round value
 
-                ratio =
-                    (model.rangeStartValue / model.thumbStartingPosition)
+        roundedStep =
+            if (round step) > 0 then
+                round step
+            else
+                1
 
-                newValue =
-                    snapValue ((model.thumbStartingPosition + delta) * ratio) model.step
-
-                newModel =
-                    if newValue >= model.min && newValue <= model.max then
-                        { model | value = newValue }
-                    else
-                        model
-            in
-                ( newModel, Cmd.none, False )
-
-        DragEnd position ->
-            let
-                _ =
-                    Debug.log "position" position
-
-                _ =
-                    Debug.log "model" model
-            in
-                ( { model
-                    | dragging = False
-                    , rangeStartValue = 0
-                    , thumbStartingPosition = 0
-                    , dragStartPosition = 0
-                  }
-                , Cmd.none
-                , True
-                )
+        remainder =
+            rem roundedValue roundedStep
+    in
+        if remainder > (roundedStep // 2) then
+            (roundedValue - remainder) + roundedStep
+        else
+            (roundedValue - remainder)
 
 
-snapValue : Float -> Int -> Float
+snapValue : Float -> Float -> Float
 snapValue value step =
-    toFloat (((round value) // step) * step)
+    let
+        roundedStep =
+            if (round step) > 0 then
+                round step
+            else
+                1
+    in
+        toFloat (((round value) // roundedStep) * roundedStep)
 
 
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
@@ -145,7 +135,14 @@ onOutsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.max / rectangle.width) * mouseX))
+                    let
+                        clickedValue =
+                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+
+                        newValue =
+                            closestStep clickedValue model.step
+                    in
+                        toString newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -167,12 +164,12 @@ onInsideRangeClick model =
         Json.Decode.map TrackClicked valueDecoder
 
 
-onThumbMouseDown : Json.Decode.Decoder Msg
-onThumbMouseDown =
+onRangeChange : Bool -> Json.Decode.Decoder Msg
+onRangeChange shouldFetchModels =
     Json.Decode.map2
-        DragStart
-        Mouse.position
-        (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
+        RangeChanged
+        targetValue
+        (Json.Decode.succeed shouldFetchModels)
 
 
 {-| Displays the slider
@@ -181,34 +178,44 @@ view : Model -> Html Msg
 view model =
     let
         progress_ratio =
-            100 / model.max
-
-        thumbStartingPosition =
-            toString (model.value * progress_ratio) ++ "%"
+            100 / (model.max - model.min)
 
         progress =
             toString ((model.max - model.value) * progress_ratio) ++ "%"
     in
-        div
-            [ Html.Attributes.class "input-range-container" ]
+        div []
             [ div
-                [ Html.Attributes.class "slider-thumb slider-thumb--first"
-                , Html.Attributes.style [ ( "left", thumbStartingPosition ) ]
-                , Html.Events.onWithOptions "mousedown" { preventDefault = True, stopPropagation = True } onThumbMouseDown
+                [ Html.Attributes.class "input-range-container" ]
+                [ Html.input
+                    [ Html.Attributes.type_ "range"
+                    , Html.Attributes.min (toString model.min)
+                    , Html.Attributes.max (toString model.max)
+                    , Html.Attributes.value <| (toString model.value)
+                    , Html.Attributes.step (toString model.step)
+                    , Html.Attributes.class "input-range"
+                    , Html.Events.on "change" (onRangeChange True)
+                    , Html.Events.on "input" (onRangeChange False)
+                    ]
+                    []
+                , div
+                    [ Html.Attributes.class "input-range__track"
+                    , Html.Events.on "click" (onOutsideRangeClick model)
+                    ]
+                    []
+                , div
+                    [ Html.Attributes.class "input-range__progress"
+                    , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
+                    , Html.Events.on "click" (onInsideRangeClick model)
+                    ]
+                    []
                 ]
-                []
             , div
-                [ Html.Attributes.class "input-range__track"
-                , Html.Attributes.style [ ( "z-index", "1" ) ]
-                , Html.Events.on "click" (onOutsideRangeClick model)
+                [ Html.Attributes.class "input-range-labels-container" ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                    [ Html.text (model.currentValueFormatter model.value model.max) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
-                []
-            , div
-                [ Html.Attributes.class "input-range__progress"
-                , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ), ( "z-index", "1" ) ]
-                , Html.Events.on "click" (onInsideRangeClick model)
-                ]
-                []
             ]
 
 
@@ -220,7 +227,4 @@ view model =
 -}
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    if model.dragging then
-        Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
-    else
-        Sub.none
+    Sub.none

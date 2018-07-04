@@ -1,11 +1,11 @@
-module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fallbackView, formatCurrentValue)
+module DoubleSlider exposing (Model, Msg, update, subscriptions, view, fallbackView, formatCurrentRange, defaultModel)
 
 {-| A single slider built natively in Elm
 
 
 # Model
 
-@docs Model
+@docs Model, defaultModel
 
 
 # Update
@@ -13,14 +13,9 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 @docs Msg, update, subscriptions
 
 
-# Configuring the slider
-
-@docs init
-
-
 # View
 
-@docs view, fallbackView, formatCurrentValue
+@docs view, fallbackView, formatCurrentRange
 
 -}
 
@@ -47,7 +42,9 @@ type alias Model =
     , dragStartPosition : Float
     , thumbParentWidth : Float
     , overlapThreshold : Float
-    , formatter : Float -> String
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
+    , currentRangeFormatter : Float -> Float -> Float -> Float -> String
     , ratio : Float
     }
 
@@ -70,23 +67,30 @@ type Msg
 
 {-| Returns a default range slider
 -}
-init : { min : Float, max : Float, step : Int, lowValue : Float, highValue : Float, overlapThreshold : Float, formatter : Float -> String } -> Model
-init config =
-    { min = config.min
-    , max = config.max
-    , step = config.step
-    , lowValue = config.lowValue
-    , highValue = config.highValue
-    , overlapThreshold = config.overlapThreshold
+defaultModel : Model
+defaultModel =
+    { min = 0
+    , max = 100
+    , step = 10
+    , lowValue = 0
+    , highValue = 100
+    , overlapThreshold = 1
     , dragging = False
     , draggedValueType = None
     , rangeStartValue = 0
     , thumbStartingPosition = 0
     , thumbParentWidth = 0
     , dragStartPosition = 0
-    , formatter = config.formatter
+    , minFormatter = toString
+    , maxFormatter = toString
+    , currentRangeFormatter = defaultCurrentRangeFormatter
     , ratio = 1
     }
+
+
+defaultCurrentRangeFormatter : Float -> Float -> Float -> Float -> String
+defaultCurrentRangeFormatter lowValue highValue min max =
+    String.join " " [ (toString lowValue), "-", (toString highValue) ]
 
 
 {-| takes a model and a message and applies it to create an updated model
@@ -208,16 +212,6 @@ update message model =
             , Cmd.none
             , True
             )
-
-
-{-| renders the current values using the formatter
--}
-formatCurrentValue : Model -> String
-formatCurrentValue model =
-    if model.lowValue == model.min && model.highValue == model.max then
-        ""
-    else
-        (model.formatter model.lowValue) ++ " - " ++ (model.formatter model.highValue)
 
 
 snapValue : Float -> Int -> Float
@@ -375,11 +369,23 @@ fallbackView model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.min) ]
-                , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ] [ Html.text (formatCurrentValue model) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.max) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div
+                    [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                    [ Html.text (formatCurrentRange model) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
+
+
+{-| Renders the current values using the formatter
+-}
+formatCurrentRange : Model -> String
+formatCurrentRange model =
+    if model.lowValue == model.min && model.highValue == model.max then
+        ""
+    else
+        model.currentRangeFormatter model.lowValue model.highValue model.min model.max
 
 
 {-| Displays the slider
@@ -437,8 +443,8 @@ view model =
                 ]
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
-                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.min) ]
-                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.formatter model.max) ]
+                [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
 
