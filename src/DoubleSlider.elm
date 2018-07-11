@@ -455,6 +455,9 @@ view model =
             , div
                 [ Html.Attributes.class "input-range-labels-container" ]
                 [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+                , div
+                    [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                    [ Html.text (formatCurrentRange model) ]
                 , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
                 ]
             ]
