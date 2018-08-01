@@ -36,6 +36,7 @@ type alias Model =
     , minFormatter : Float -> String
     , maxFormatter : Float -> String
     , currentValueFormatter : Float -> Float -> String
+    , disabled : Bool
     }
 
 
@@ -57,6 +58,7 @@ defaultModel =
     , minFormatter = toString
     , maxFormatter = toString
     , currentValueFormatter = defaultCurrentValueFormatter
+    , disabled = False
     }
 
 
@@ -182,6 +184,30 @@ view model =
 
         progress =
             toString ((model.max - model.value) * progress_ratio) ++ "%"
+
+        trackAttributes =
+            [ Html.Attributes.class "input-range__track" ]
+
+        trackAllAttributes =
+            case model.disabled of
+                False ->
+                    List.append trackAttributes [ Html.Events.on "click" (onOutsideRangeClick model) ]
+
+                True ->
+                    trackAttributes
+
+        progressAttributes =
+            [ Html.Attributes.class "input-range__progress"
+            , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
+            ]
+
+        progressAllAttributes =
+            case model.disabled of
+                False ->
+                    List.append progressAttributes [ Html.Events.on "click" (onInsideRangeClick model) ]
+
+                True ->
+                    progressAttributes
     in
         div []
             [ div
@@ -193,20 +219,16 @@ view model =
                     , Html.Attributes.value <| (toString model.value)
                     , Html.Attributes.step (toString model.step)
                     , Html.Attributes.class "input-range"
+                    , Html.Attributes.disabled model.disabled
                     , Html.Events.on "change" (onRangeChange True)
                     , Html.Events.on "input" (onRangeChange False)
                     ]
                     []
                 , div
-                    [ Html.Attributes.class "input-range__track"
-                    , Html.Events.on "click" (onOutsideRangeClick model)
-                    ]
+                    trackAllAttributes
                     []
                 , div
-                    [ Html.Attributes.class "input-range__progress"
-                    , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
-                    , Html.Events.on "click" (onInsideRangeClick model)
-                    ]
+                    progressAllAttributes
                     []
                 ]
             , div
