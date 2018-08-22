@@ -25,6 +25,7 @@ module DoubleSlider exposing (Model, Msg, init, update, subscriptions, view, fal
 -}
 
 import Browser
+import Browser.Events
 import Html exposing (Html, div, input)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
@@ -479,8 +480,8 @@ subscriptions model =
                 Json.Decode.map DragEnd positionDecoder
         in
             Sub.batch
-                [ Browser.onDocument "mousemove" moveDecoder
-                , Browser.onDocument "mouseup" upDecoder
+                [ Browser.Events.onMouseMove moveDecoder
+                , Browser.Events.onMouseUp upDecoder
                 ]
     else
         Sub.none
