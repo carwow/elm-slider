@@ -82,15 +82,15 @@ defaultModel =
     , thumbStartingPosition = 0
     , thumbParentWidth = 0
     , dragStartPosition = 0
-    , minFormatter = toString
-    , maxFormatter = toString
+    , minFormatter = String.fromFloat
+    , maxFormatter = String.fromFloat
     , currentRangeFormatter = defaultCurrentRangeFormatter
     }
 
 
 defaultCurrentRangeFormatter : Float -> Float -> Float -> Float -> String
 defaultCurrentRangeFormatter lowValue highValue min max =
-    String.join " " [ (toString lowValue), "-", (toString highValue) ]
+    String.join " " [ (String.fromFloat lowValue), "-", (String.fromFloat highValue) ]
 
 
 {-| takes a model and a message and applies it to create an updated model

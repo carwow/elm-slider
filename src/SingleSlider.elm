@@ -55,8 +55,8 @@ defaultModel =
     , max = 100
     , step = 10
     , value = 0
-    , minFormatter = toString
-    , maxFormatter = toString
+    , minFormatter = String.fromFloat
+    , maxFormatter = String.fromFloat
     , currentValueFormatter = defaultCurrentValueFormatter
     , disabled = False
     }
@@ -69,7 +69,7 @@ defaultCurrentValueFormatter currentValue max =
     if currentValue == max then
         ""
     else
-        toString currentValue
+        String.fromFloat currentValue
 
 
 {-| takes a model and a message and applies it to create an updated model
@@ -144,7 +144,7 @@ onOutsideRangeClick model =
                         newValue =
                             closestStep clickedValue model.step
                     in
-                        toString newValue
+                        String.fromFloat newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -158,7 +158,7 @@ onInsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    toString (round ((model.value / rectangle.width) * mouseX))
+                    String.fromFloat (round ((model.value / rectangle.width) * mouseX))
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -183,7 +183,7 @@ view model =
             100 / (model.max - model.min)
 
         progress =
-            toString ((model.max - model.value) * progress_ratio) ++ "%"
+            String.fromFloat ((model.max - model.value) * progress_ratio) ++ "%"
 
         trackAttributes =
             [ Html.Attributes.class "input-range__track" ]
@@ -214,10 +214,10 @@ view model =
                 [ Html.Attributes.class "input-range-container" ]
                 [ Html.input
                     [ Html.Attributes.type_ "range"
-                    , Html.Attributes.min (toString model.min)
-                    , Html.Attributes.max (toString model.max)
-                    , Html.Attributes.value <| (toString model.value)
-                    , Html.Attributes.step (toString model.step)
+                    , Html.Attributes.min (String.fromFloat model.min)
+                    , Html.Attributes.max (String.fromFloat model.max)
+                    , Html.Attributes.value <| (String.fromFloat model.value)
+                    , Html.Attributes.step (String.fromFloat model.step)
                     , Html.Attributes.class "input-range"
                     , Html.Attributes.disabled model.disabled
                     , Html.Events.on "change" (onRangeChange True)
