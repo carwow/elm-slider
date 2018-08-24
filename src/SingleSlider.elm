@@ -85,7 +85,7 @@ update message model =
         RangeChanged newValue shouldFetchModels ->
             let
                 convertedValue =
-                    String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0
+                    String.toFloat newValue |> Maybe.withDefault 0
 
                 newModel =
                     { model | value = convertedValue }
@@ -95,7 +95,7 @@ update message model =
         TrackClicked newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Result.toMaybe |> Maybe.withDefault 0) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
 
                 newModel =
                     { model | value = convertedValue }
@@ -152,7 +152,7 @@ onOutsideRangeClick model =
                         newValue =
                             closestStep clickedValue model.step
                     in
-                    String.fromFloat newValue
+                    String.fromInt newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -166,7 +166,7 @@ onInsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    String.fromFloat (round ((model.value / rectangle.width) * mouseX))
+                    String.fromInt (round ((model.value / rectangle.width) * mouseX))
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -206,7 +206,8 @@ view model =
 
         progressAttributes =
             [ Html.Attributes.class "input-range__progress"
-            , Html.Attributes.style [ ( "left", "0" ), ( "right", progress ) ]
+            , Html.Attributes.style "left" "0"
+            , Html.Attributes.style "right" progress
             ]
 
         progressAllAttributes =
