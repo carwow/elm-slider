@@ -5,7 +5,7 @@
 
 module DOM exposing (boundingClientRect)
 
-import Json.Decode as Decode exposing (Decoder, field, andThen)
+import Json.Decode as Decode exposing (Decoder, andThen, field)
 
 
 type alias Rectangle =
