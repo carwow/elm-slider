@@ -30,7 +30,6 @@ import Html exposing (Html, div, input)
 import Html.Attributes exposing (..)
 import Html.Events exposing (on, targetValue)
 import Json.Decode exposing (map)
-import Mouse exposing (..)
 
 
 {-| The base model for the slider
@@ -64,9 +63,9 @@ type SliderValueType
 -}
 type Msg
     = TrackClicked SliderValueType String
-    | DragStart SliderValueType Position Float Float
-    | DragAt Position
-    | DragEnd Position
+    | DragStart SliderValueType Int Float Float
+    | DragAt Int
+    | DragEnd
     | RangeChanged SliderValueType String Bool
 
 
@@ -138,7 +137,7 @@ update message model =
             in
             ( newModel, Cmd.none, True )
 
-        DragStart valueType position offsetLeft offsetWidth ->
+        DragStart valueType positionX offsetLeft offsetWidth ->
             let
                 newModel =
                     { model
@@ -156,12 +155,12 @@ update message model =
                                     0
                         , thumbStartingPosition = offsetLeft + 16
                         , thumbParentWidth = offsetWidth
-                        , dragStartPosition = toFloat position.x
+                        , dragStartPosition = toFloat positionX
                     }
             in
             ( newModel, Cmd.none, False )
 
-        DragAt position ->
+        DragAt positionX ->
             let
                 rangeStart =
                     case model.draggedValueType of
@@ -189,7 +188,7 @@ update message model =
                     rangeStart / offset
 
                 delta =
-                    toFloat position.x - model.dragStartPosition
+                    toFloat positionX - model.dragStartPosition
 
                 newValue =
                     case model.draggedValueType of
@@ -225,7 +224,7 @@ update message model =
             in
             ( newModel, Cmd.none, False )
 
-        DragEnd position ->
+        DragEnd ->
             ( { model
                 | dragging = False
               }
@@ -318,7 +317,7 @@ onThumbMouseDown valueType =
     Json.Decode.map4
         DragStart
         (Json.Decode.succeed valueType)
-        positionDecoder
+        pageXDecoder
         (Json.Decode.at [ "target", "offsetLeft" ] Json.Decode.float)
         (Json.Decode.at [ "target", "offsetParent", "offsetWidth" ] Json.Decode.float)
 
@@ -492,11 +491,11 @@ subscriptions model =
         let
             moveDecoder : Json.Decode.Decoder Msg
             moveDecoder =
-                Json.Decode.map DragAt positionDecoder
+                Json.Decode.map DragAt pageXDecoder
 
             upDecoder : Json.Decode.Decoder Msg
             upDecoder =
-                Json.Decode.map DragEnd positionDecoder
+                Json.Decode.succeed DragEnd
         in
         Sub.batch
             [ Browser.Events.onMouseMove moveDecoder
@@ -505,3 +504,8 @@ subscriptions model =
 
     else
         Sub.none
+
+
+pageXDecoder : Json.Decode.Decoder Int
+pageXDecoder =
+    Json.Decode.field "pageX" Json.Decode.int
