@@ -1,7 +1,7 @@
 # elm-slider
 
 ```shell
-elm package install carwow/elm-slider
+elm install carwow/elm-slider
 ```
 
 ## Usage
