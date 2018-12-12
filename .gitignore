@@ -3,3 +3,5 @@ elm-stuff
 # elm-repl generated files
 repl-temp-*
 .idea/
+node_modules
+yarn.lock
