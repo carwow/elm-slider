@@ -1,8 +1,7 @@
 module SingleSlider exposing
-    ( Model, defaultModel
+    ( Model, defaultModel, ProgressDirection(..)
     , Msg, update, subscriptions
     , view
-    , ProgressDirection(..)
     )
 
 {-| A single slider built natively in Elm
@@ -10,7 +9,7 @@ module SingleSlider exposing
 
 # Model
 
-@docs Model, defaultModel
+@docs Model, defaultModel, ProgressDirection
 
 
 # Update
@@ -53,6 +52,8 @@ type Msg
     | RangeChanged String Bool
 
 
+{-| Progress Bar direction (left or right)
+-}
 type ProgressDirection
     = ProgressLeft
     | ProgressRight
