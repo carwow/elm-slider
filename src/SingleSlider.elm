@@ -263,13 +263,16 @@ calculateProgressPercentages model =
     let
         progressRatio =
             100 / (model.max - model.min)
+
+        value =
+            clamp model.min model.max model.value
     in
     case model.progressDirection of
         ProgressRight ->
-            { left = (model.value - model.min) * progressRatio, right = 0.0 }
+            { left = (value - model.min) * progressRatio, right = 0.0 }
 
         ProgressLeft ->
-            { left = 0.0, right = (model.max - model.value) * progressRatio }
+            { left = 0.0, right = (model.max - value) * progressRatio }
 
 
 
