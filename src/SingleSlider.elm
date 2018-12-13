@@ -1,5 +1,5 @@
 module SingleSlider exposing
-    ( Model, defaultModel
+    ( Model, defaultModel, ProgressDirection(..)
     , Msg, update, subscriptions
     , view
     )
@@ -9,7 +9,7 @@ module SingleSlider exposing
 
 # Model
 
-@docs Model, defaultModel
+@docs Model, defaultModel, ProgressDirection
 
 
 # Update
@@ -41,6 +41,7 @@ type alias Model =
     , maxFormatter : Float -> String
     , currentValueFormatter : Float -> Float -> String
     , disabled : Bool
+    , progressDirection : ProgressDirection
     }
 
 
@@ -49,6 +50,13 @@ type alias Model =
 type Msg
     = TrackClicked String
     | RangeChanged String Bool
+
+
+{-| Progress Bar direction (left or right)
+-}
+type ProgressDirection
+    = ProgressLeft
+    | ProgressRight
 
 
 {-| Default model
@@ -63,6 +71,7 @@ defaultModel =
     , maxFormatter = String.fromFloat
     , currentValueFormatter = defaultCurrentValueFormatter
     , disabled = False
+    , progressDirection = ProgressLeft
     }
 
 
@@ -187,12 +196,6 @@ onRangeChange shouldFetchModels =
 view : Model -> Html Msg
 view model =
     let
-        progress_ratio =
-            100 / (model.max - model.min)
-
-        progress =
-            String.fromFloat ((model.max - model.value) * progress_ratio) ++ "%"
-
         trackAttributes =
             [ Html.Attributes.class "input-range__track" ]
 
@@ -204,10 +207,13 @@ view model =
                 True ->
                     trackAttributes
 
+        progressPercentages =
+            calculateProgressPercentages model
+
         progressAttributes =
             [ Html.Attributes.class "input-range__progress"
-            , Html.Attributes.style "left" "0"
-            , Html.Attributes.style "right" progress
+            , Html.Attributes.style "left" <| String.fromFloat progressPercentages.left ++ "%"
+            , Html.Attributes.style "right" <| String.fromFloat progressPercentages.right ++ "%"
             ]
 
         progressAllAttributes =
@@ -248,6 +254,22 @@ view model =
             , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
             ]
         ]
+
+
+{-| Returns the percentage adjusted min, max values for the range (actual min - actual max)
+-}
+calculateProgressPercentages : Model -> { left : Float, right : Float }
+calculateProgressPercentages model =
+    let
+        progressRatio =
+            100 / (model.max - model.min)
+    in
+    case model.progressDirection of
+        ProgressRight ->
+            { left = (model.value - model.min) * progressRatio, right = 0.0 }
+
+        ProgressLeft ->
+            { left = 0.0, right = (model.max - model.value) * progressRatio }
 
 
 
