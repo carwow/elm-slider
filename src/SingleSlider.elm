@@ -104,7 +104,7 @@ update message model =
         TrackClicked newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault model.min) model.step
 
                 newModel =
                     { model | value = convertedValue }
@@ -175,7 +175,19 @@ onInsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    String.fromInt (round ((model.value / rectangle.width) * mouseX))
+                    let
+                        newValue =
+                            case model.progressDirection of
+                                ProgressLeft ->
+                                    round ((model.value / rectangle.width) * mouseX)
+
+                                ProgressRight ->
+                                    round (((model.max / rectangle.width) * mouseX) + model.min)
+
+                        adjustedNewValue =
+                            clamp model.min model.max <| toFloat newValue
+                    in
+                    String.fromFloat adjustedNewValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
