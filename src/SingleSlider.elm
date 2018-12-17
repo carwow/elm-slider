@@ -104,7 +104,7 @@ update message model =
         TrackClicked newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault model.min) model
 
                 newModel =
                     { model | value = convertedValue }
@@ -135,17 +135,34 @@ closestStep value step =
         roundedValue - remainder
 
 
-snapValue : Float -> Float -> Float
-snapValue value step =
+snapValue : Float -> Model -> Float
+snapValue value model =
     let
         roundedStep =
-            if round step > 0 then
-                round step
+            round model.step
+
+        adjustedRoundedStep =
+            if roundedStep > 0 then
+                roundedStep
 
             else
                 1
+
+        newValue =
+            value / toFloat adjustedRoundedStep
+
+        roundedValue =
+            case model.progressDirection of
+                ProgressLeft ->
+                    floor newValue
+
+                ProgressRight ->
+                    ceiling newValue
+
+        nextValue =
+            toFloat (roundedValue * adjustedRoundedStep)
     in
-    toFloat ((round value // roundedStep) * roundedStep)
+    nextValue
 
 
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
@@ -175,7 +192,23 @@ onInsideRangeClick model =
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    String.fromInt (round ((model.value / rectangle.width) * mouseX))
+                    let
+                        adjustedValue =
+                            clamp model.min model.max model.value
+
+                        newValue =
+                            round <|
+                                case model.progressDirection of
+                                    ProgressLeft ->
+                                        (adjustedValue / rectangle.width) * mouseX
+
+                                    ProgressRight ->
+                                        adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
+
+                        adjustedNewValue =
+                            clamp model.min model.max <| toFloat newValue
+                    in
+                    String.fromFloat adjustedNewValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -263,13 +296,16 @@ calculateProgressPercentages model =
     let
         progressRatio =
             100 / (model.max - model.min)
+
+        value =
+            clamp model.min model.max model.value
     in
     case model.progressDirection of
         ProgressRight ->
-            { left = (model.value - model.min) * progressRatio, right = 0.0 }
+            { left = (value - model.min) * progressRatio, right = 0.0 }
 
         ProgressLeft ->
-            { left = 0.0, right = (model.max - model.value) * progressRatio }
+            { left = 0.0, right = (model.max - value) * progressRatio }
 
 
 
