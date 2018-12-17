@@ -104,7 +104,7 @@ update message model =
         TrackClicked newValue ->
             let
                 convertedValue =
-                    snapValue (String.toFloat newValue |> Maybe.withDefault model.min) model.step
+                    snapValue (String.toFloat newValue |> Maybe.withDefault model.min) model
 
                 newModel =
                     { model | value = convertedValue }
@@ -135,17 +135,34 @@ closestStep value step =
         roundedValue - remainder
 
 
-snapValue : Float -> Float -> Float
-snapValue value step =
+snapValue : Float -> Model -> Float
+snapValue value model =
     let
         roundedStep =
-            if round step > 0 then
-                round step
+            round model.step
+
+        adjustedRoundedStep =
+            if roundedStep > 0 then
+                roundedStep
 
             else
                 1
+
+        newValue =
+            value / toFloat adjustedRoundedStep
+
+        roundedValue =
+            case model.progressDirection of
+                ProgressLeft ->
+                    floor newValue
+
+                ProgressRight ->
+                    ceiling newValue
+
+        nextValue =
+            toFloat (roundedValue * adjustedRoundedStep)
     in
-    toFloat ((round value // roundedStep) * roundedStep)
+    nextValue
 
 
 onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
@@ -176,13 +193,17 @@ onInsideRangeClick model =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
-                        newValue =
-                            case model.progressDirection of
-                                ProgressLeft ->
-                                    round ((model.value / rectangle.width) * mouseX)
+                        adjustedValue =
+                            clamp model.min model.max model.value
 
-                                ProgressRight ->
-                                    round (((model.max / rectangle.width) * mouseX) + model.min)
+                        newValue =
+                            round <|
+                                case model.progressDirection of
+                                    ProgressLeft ->
+                                        (adjustedValue / rectangle.width) * mouseX
+
+                                    ProgressRight ->
+                                        adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
 
                         adjustedNewValue =
                             clamp model.min model.max <| toFloat newValue
