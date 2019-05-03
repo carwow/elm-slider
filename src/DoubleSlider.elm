@@ -109,10 +109,18 @@ update message model =
                 newModel =
                     case valueType of
                         LowValue ->
-                            { model | lowValue = convertedValue }
+                            let
+                                newLowValue =
+                                    Basics.min convertedValue (model.highValue - (toFloat model.step * model.overlapThreshold))
+                            in
+                            { model | lowValue = newLowValue }
 
                         HighValue ->
-                            { model | highValue = convertedValue }
+                            let
+                                newHighValue =
+                                    Basics.max convertedValue (model.lowValue + (toFloat model.step * model.overlapThreshold))
+                            in
+                            { model | highValue = newHighValue }
 
                         None ->
                             model
