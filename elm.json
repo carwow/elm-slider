@@ -3,7 +3,7 @@
     "name": "carwow/elm-slider",
     "summary": "Elm slider implementation",
     "license": "BSD-3-Clause",
-    "version": "7.0.1",
+    "version": "7.0.2",
     "exposed-modules": [
         "DoubleSlider",
         "SingleSlider"
