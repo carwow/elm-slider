@@ -111,22 +111,14 @@ update message model =
                         LowValue ->
                             let
                                 newLowValue =
-                                    List.minimum
-                                        [ convertedValue
-                                        , model.highValue - (toFloat model.step * model.overlapThreshold)
-                                        ]
-                                        |> Maybe.withDefault model.min
+                                    Basics.min convertedValue (model.highValue - (toFloat model.step * model.overlapThreshold))
                             in
                             { model | lowValue = newLowValue }
 
                         HighValue ->
                             let
                                 newHighValue =
-                                    List.maximum
-                                        [ convertedValue
-                                        , model.lowValue + (toFloat model.step * model.overlapThreshold)
-                                        ]
-                                        |> Maybe.withDefault model.max
+                                    Basics.max convertedValue (model.lowValue + (toFloat model.step * model.overlapThreshold))
                             in
                             { model | highValue = newHighValue }
 
