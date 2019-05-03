@@ -109,10 +109,20 @@ update message model =
                 newModel =
                     case valueType of
                         LowValue ->
-                            { model | lowValue = convertedValue }
+                            let
+                                lowestValue =
+                                    List.minimum [ convertedValue, model.highValue - toFloat model.step ]
+                                        |> Maybe.withDefault model.min
+                            in
+                            { model | lowValue = lowestValue }
 
                         HighValue ->
-                            { model | highValue = convertedValue }
+                            let
+                                highestValue =
+                                    List.maximum [ convertedValue, model.lowValue + toFloat model.step ]
+                                        |> Maybe.withDefault model.max
+                            in
+                            { model | highValue = highestValue }
 
                         None ->
                             model
