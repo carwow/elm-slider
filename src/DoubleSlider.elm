@@ -110,19 +110,25 @@ update message model =
                     case valueType of
                         LowValue ->
                             let
-                                lowestValue =
-                                    List.minimum [ convertedValue, model.highValue - toFloat model.step ]
+                                newLowValue =
+                                    List.minimum
+                                        [ convertedValue
+                                        , model.highValue - (toFloat model.step * model.overlapThreshold)
+                                        ]
                                         |> Maybe.withDefault model.min
                             in
-                            { model | lowValue = lowestValue }
+                            { model | lowValue = newLowValue }
 
                         HighValue ->
                             let
-                                highestValue =
-                                    List.maximum [ convertedValue, model.lowValue + toFloat model.step ]
+                                newHighValue =
+                                    List.maximum
+                                        [ convertedValue
+                                        , model.lowValue + (toFloat model.step * model.overlapThreshold)
+                                        ]
                                         |> Maybe.withDefault model.max
                             in
-                            { model | highValue = highestValue }
+                            { model | highValue = newHighValue }
 
                         None ->
                             model
