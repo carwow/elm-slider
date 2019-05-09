@@ -130,11 +130,6 @@ To view the slider, simply call the view function
 DoubleSlider.view model.slider |> Html.map SliderMsg
 ```
 
-On mobile we suggest to use the `fallbackView` as `view` doesn't handle touchEvents
-```elm
-DoubleSlider.fallbackView model.slider |> Html.map SliderMsg
-```
-
 ## Example
 ```elm
 module Thing exposing (init, update, subscriptions, view, Model, Msg)
