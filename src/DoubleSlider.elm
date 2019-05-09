@@ -222,15 +222,6 @@ onRangeChange valueType shouldFetchModels =
 -}
 view : Model -> Html Msg
 view model =
-    fallbackView model
-
-
-{-| Displays the slider using two inputs
-This used to be used to overcome an issue with mobile devices not supporting mouse events.
-But it's actually a simple solution which can work for mobile and desktop.
--}
-fallbackView : Model -> Html Msg
-fallbackView model =
     let
         lowValue =
             round model.lowValue
@@ -294,6 +285,13 @@ fallbackView model =
             , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
             ]
         ]
+
+
+{-| DEPRECATED: Displays the slider
+-}
+fallbackView : Model -> Html Msg
+fallbackView model =
+    view model
 
 
 {-| Renders the current values using the formatter
