@@ -175,7 +175,10 @@ onOutsideRangeClick model =
                 (\rectangle mouseX ->
                     let
                         clickedValue =
-                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+                            if model.reversed then
+                                model.max - (((model.max - model.min) / rectangle.width) * mouseX)
+                            else
+                                (((model.max - model.min) / rectangle.width) * mouseX) + model.min
 
                         newValue =
                             closestStep clickedValue model.step
@@ -202,10 +205,16 @@ onInsideRangeClick model =
                             round <|
                                 case model.progressDirection of
                                     ProgressLeft ->
-                                        (adjustedValue / rectangle.width) * mouseX
+                                        if model.reversed then
+                                            model.max - (model.max - adjustedValue) * (mouseX / rectangle.width)
+                                        else
+                                            (adjustedValue - model.min) * (mouseX / rectangle.width) + model.min
 
                                     ProgressRight ->
-                                        adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
+                                        if model.reversed then
+                                            adjustedValue - ((mouseX / rectangle.width) * (adjustedValue - model.min))
+                                        else
+                                            adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
 
                         adjustedNewValue =
                             clamp model.min model.max <| toFloat newValue
@@ -258,6 +267,13 @@ view model =
 
                 True ->
                     progressAttributes
+
+        (leftText, rightText) =
+            if model.reversed then
+                (model.maxFormatter model.max, model.minFormatter model.min)
+            else
+                (model.minFormatter model.min, model.maxFormatter model.max)
+
     in
     div []
         [ div
@@ -272,6 +288,7 @@ view model =
                 , Html.Attributes.disabled model.disabled
                 , Html.Events.on "change" (onRangeChange True)
                 , Html.Events.on "input" (onRangeChange False)
+                , Html.Attributes.style "direction" <| if model.reversed then "rtl" else "ltr"
                 ]
                 []
             , div
@@ -283,10 +300,10 @@ view model =
             ]
         , div
             [ Html.Attributes.class "input-range-labels-container" ]
-            [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
+            [ div [ Html.Attributes.class "input-range-label" ] [ Html.text leftText ]
             , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
                 [ Html.text (model.currentValueFormatter model.value model.max) ]
-            , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
+            , div [ Html.Attributes.class "input-range-label" ] [ Html.text rightText ]
             ]
         ]
 
@@ -302,12 +319,18 @@ calculateProgressPercentages model =
         value =
             clamp model.min model.max model.value
     in
-    case model.progressDirection of
-        ProgressRight ->
+    case (model.progressDirection, model.reversed) of
+        (ProgressRight, False) ->
             { left = (value - model.min) * progressRatio, right = 0.0 }
 
-        ProgressLeft ->
+        (ProgressLeft, False) ->
             { left = 0.0, right = (model.max - value) * progressRatio }
+
+        (ProgressLeft, True) ->
+            { left = 0.0, right = 100 - (model.max - value) * progressRatio }
+
+        (ProgressRight, True) ->
+            { left = 100 - (value - model.min) * progressRatio, right = 0.0 }
 
 
 
