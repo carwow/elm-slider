@@ -42,6 +42,7 @@ type alias Model =
     , currentValueFormatter : Float -> Float -> String
     , disabled : Bool
     , progressDirection : ProgressDirection
+    , reversed : Bool
     }
 
 
@@ -72,6 +73,7 @@ defaultModel =
     , currentValueFormatter = defaultCurrentValueFormatter
     , disabled = False
     , progressDirection = ProgressLeft
+    , reversed = False
     }
 
 
