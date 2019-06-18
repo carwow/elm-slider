@@ -205,10 +205,7 @@ onInsideRangeClick model =
                             round <|
                                 case model.progressDirection of
                                     ProgressLeft ->
-                                        if model.reversed then
-                                            model.max - (model.max - adjustedValue) * (mouseX / rectangle.width)
-                                        else
-                                            (adjustedValue - model.min) * (mouseX / rectangle.width) + model.min
+                                        (adjustedValue / rectangle.width) * mouseX
 
                                     ProgressRight ->
                                         if model.reversed then
@@ -319,18 +316,15 @@ calculateProgressPercentages model =
         value =
             clamp model.min model.max model.value
     in
-    case (model.progressDirection, model.reversed) of
-        (ProgressRight, False) ->
-            { left = (value - model.min) * progressRatio, right = 0.0 }
+    case model.progressDirection of
+        ProgressRight ->
+            if model.reversed then
+                { left = 100 - (value - model.min) * progressRatio, right = 0.0 }
+            else
+                { left = (value - model.min) * progressRatio, right = 0.0 }
 
-        (ProgressLeft, False) ->
+        ProgressLeft ->
             { left = 0.0, right = (model.max - value) * progressRatio }
-
-        (ProgressLeft, True) ->
-            { left = 0.0, right = 100 - (model.max - value) * progressRatio }
-
-        (ProgressRight, True) ->
-            { left = 100 - (value - model.min) * progressRatio, right = 0.0 }
 
 
 
