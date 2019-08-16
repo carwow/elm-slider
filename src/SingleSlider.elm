@@ -50,7 +50,7 @@ type alias Model =
 -}
 type Msg
     = TrackClicked String
-    | RangeChanged String Bool
+    | OnInput String Bool
     | OnChange String
 
 
@@ -94,7 +94,7 @@ defaultCurrentValueFormatter currentValue max =
 update : Msg -> Model -> ( Model, Cmd Msg, Bool )
 update message model =
     case message of
-        RangeChanged newValue shouldFetchModels ->
+        OnInput newValue shouldFetchModels ->
             let
                 convertedValue =
                     String.toFloat newValue |> Maybe.withDefault 0
@@ -234,9 +234,9 @@ onInsideRangeClick model =
     Json.Decode.map TrackClicked valueDecoder
 
 
-onRangeChange : Bool -> Json.Decode.Decoder Msg
-onRangeChange shouldFetchModels =
-    Json.Decode.map2 RangeChanged
+onInput : Bool -> Json.Decode.Decoder Msg
+onInput shouldFetchModels =
+    Json.Decode.map2 OnInput
         targetValue
         (Json.Decode.succeed shouldFetchModels)
 
@@ -299,7 +299,7 @@ view model =
                 , Html.Attributes.class "input-range"
                 , Html.Attributes.disabled model.disabled
                 , Html.Events.on "change" onChange
-                , Html.Events.on "input" (onRangeChange True)
+                , Html.Events.on "input" (onInput True)
                 , Html.Attributes.style "direction" <|
                     if model.reversed then
                         "rtl"
