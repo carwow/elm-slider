@@ -1,6 +1,6 @@
 module SingleSlider exposing
     ( Model, defaultModel, ProgressDirection(..)
-    , Msg, update, subscriptions
+    , Msg(..), update, subscriptions
     , view
     )
 
@@ -50,7 +50,8 @@ type alias Model =
 -}
 type Msg
     = TrackClicked String
-    | RangeChanged String Bool
+    | OnInput String Bool
+    | OnChange String
 
 
 {-| Progress Bar direction (left or right)
@@ -93,7 +94,7 @@ defaultCurrentValueFormatter currentValue max =
 update : Msg -> Model -> ( Model, Cmd Msg, Bool )
 update message model =
     case message of
-        RangeChanged newValue shouldFetchModels ->
+        OnInput newValue shouldFetchModels ->
             let
                 convertedValue =
                     String.toFloat newValue |> Maybe.withDefault 0
@@ -102,6 +103,13 @@ update message model =
                     { model | value = convertedValue }
             in
             ( newModel, Cmd.none, shouldFetchModels )
+
+        OnChange newValue ->
+            let
+                convertedValue =
+                    String.toFloat newValue |> Maybe.withDefault 0
+            in
+            ( { model | value = convertedValue }, Cmd.none, True )
 
         TrackClicked newValue ->
             let
@@ -177,6 +185,7 @@ onOutsideRangeClick model =
                         clickedValue =
                             if model.reversed then
                                 model.max - (((model.max - model.min) / rectangle.width) * mouseX)
+
                             else
                                 (((model.max - model.min) / rectangle.width) * mouseX) + model.min
 
@@ -210,6 +219,7 @@ onInsideRangeClick model =
                                     ProgressRight ->
                                         if model.reversed then
                                             adjustedValue - ((mouseX / rectangle.width) * (adjustedValue - model.min))
+
                                         else
                                             adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
 
@@ -224,12 +234,17 @@ onInsideRangeClick model =
     Json.Decode.map TrackClicked valueDecoder
 
 
-onRangeChange : Bool -> Json.Decode.Decoder Msg
-onRangeChange shouldFetchModels =
-    Json.Decode.map2
-        RangeChanged
+onInput : Bool -> Json.Decode.Decoder Msg
+onInput shouldFetchModels =
+    Json.Decode.map2 OnInput
         targetValue
         (Json.Decode.succeed shouldFetchModels)
+
+
+onChange : Json.Decode.Decoder Msg
+onChange =
+    Json.Decode.map OnChange
+        targetValue
 
 
 {-| Displays the slider
@@ -265,12 +280,12 @@ view model =
                 True ->
                     progressAttributes
 
-        (leftText, rightText) =
+        ( leftText, rightText ) =
             if model.reversed then
-                (model.maxFormatter model.max, model.minFormatter model.min)
-            else
-                (model.minFormatter model.min, model.maxFormatter model.max)
+                ( model.maxFormatter model.max, model.minFormatter model.min )
 
+            else
+                ( model.minFormatter model.min, model.maxFormatter model.max )
     in
     div []
         [ div
@@ -283,9 +298,14 @@ view model =
                 , Html.Attributes.step (String.fromFloat model.step)
                 , Html.Attributes.class "input-range"
                 , Html.Attributes.disabled model.disabled
-                , Html.Events.on "change" (onRangeChange True)
-                , Html.Events.on "input" (onRangeChange False)
-                , Html.Attributes.style "direction" <| if model.reversed then "rtl" else "ltr"
+                , Html.Events.on "change" onChange
+                , Html.Events.on "input" (onInput True)
+                , Html.Attributes.style "direction" <|
+                    if model.reversed then
+                        "rtl"
+
+                    else
+                        "ltr"
                 ]
                 []
             , div
@@ -320,6 +340,7 @@ calculateProgressPercentages model =
         ProgressRight ->
             if model.reversed then
                 { left = 100 - (value - model.min) * progressRatio, right = 0.0 }
+
             else
                 { left = (value - model.min) * progressRatio, right = 0.0 }
 
