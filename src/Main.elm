@@ -16,7 +16,8 @@ main =
 
 
 type alias Model =
-    {}
+    { slider : RangeSlider.Config Msg
+    }
 
 
 type alias Flags =
@@ -25,7 +26,11 @@ type alias Flags =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( Model, Cmd.none )
+    let
+        model =
+            { slider = RangeSlider.defaultConfig handleSliderInput handleSliderChange }
+    in
+    ( model, Cmd.none )
 
 
 
@@ -46,26 +51,21 @@ update msg model =
 
         SliderInput str ->
             let
-                debug =
-                    Debug.log "Slider Input" str
+                newModel =
+                    { model | slider = RangeSlider.updateValue (String.toFloat str |> Maybe.withDefault 0) model.slider }
             in
-            ( model, Cmd.none )
+            ( newModel, Cmd.none )
 
         SliderChange str ->
             let
-                debug =
-                    Debug.log "Slider Change" str
+                newModel =
+                    { model | slider = RangeSlider.updateValue (String.toFloat str |> Maybe.withDefault 0) model.slider }
             in
-            ( model, Cmd.none )
+            ( newModel, Cmd.none )
 
 
 
 -- VIEW
-
-
-fetch : Model -> Cmd Msg
-fetch model =
-    Cmd.none
 
 
 handleSliderInput : String -> Msg
@@ -78,15 +78,10 @@ handleSliderChange str =
     SliderChange str
 
 
-rangeSliderView : Html Msg
-rangeSliderView =
-    RangeSlider.initRangeSlider "id" handleSliderInput handleSliderChange |> RangeSlider.view
-
-
 view : Model -> Html Msg
 view model =
     div []
-        [ rangeSliderView ]
+        [ RangeSlider.view model.slider ]
 
 
 subscriptions : Model -> Sub msg

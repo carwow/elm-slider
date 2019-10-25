@@ -1,4 +1,4 @@
-module RangeSlider exposing (Config, view)
+module RangeSlider exposing (Config, defaultConfig, updateValue, view)
 
 import Browser.Events exposing (..)
 import Html exposing (..)
@@ -11,17 +11,6 @@ import Json.Decode exposing (..)
 -- STATE
 
 
-{-| Tracks the current value of the slider
--}
-type State
-    = State Float
-
-
-initialValue : Float -> State
-initialValue value =
-    State value
-
-
 type Config a
     = Config
         { change : String -> a
@@ -29,19 +18,20 @@ type Config a
         , max : Float
         , min : Float
         , step : Float
+        , value : Float
         }
 
 
-config :
-    { change : State -> a
-    , input : State -> a
+initConfig :
+    { change : String -> a
+    , input : String -> a
     , max : Float
     , min : Float
     , step : Float
     , value : Float
     }
     -> Config a
-config { change, input, max, min, step, value } =
+initConfig { change, input, max, min, step, value } =
     Config
         { change = change
         , input = input
@@ -52,41 +42,25 @@ config { change, input, max, min, step, value } =
         }
 
 
-initRangeSlider : String -> (String -> a) -> (String -> a) -> RangeSlider a
-initRangeSlider id change input =
-    RangeSlider
-        { id = id
-        , config = defaultConfig change input
+defaultConfig : (String -> a) -> (String -> a) -> Config a
+defaultConfig change input =
+    Config
+        { change = change
+        , input = input
+        , max = 1000
+        , min = 0
+        , step = 100
+        , value = 500
         }
 
 
-
--- Config
-
-
-type alias Config a =
-    { change : String -> a
-    , input : String -> a
-    , max : Float
-    , min : Float
-    , step : Float
-    , value : Float
-    }
-
-
-defaultConfig : (String -> a) -> (String -> a) -> Config a
-defaultConfig change input =
-    { change = change
-    , input = input
-    , max = 1000
-    , min = 0
-    , step = 100
-    , value = 500
-    }
+updateValue : Float -> Config a -> Config a
+updateValue newValue (Config config) =
+    Config { config | value = newValue }
 
 
 
--- View
+-- VIEW
 
 
 onChange : (String -> a) -> Html.Attribute a
@@ -99,21 +73,20 @@ onInput msg =
     Html.Events.on "input" (Json.Decode.map msg Html.Events.targetValue)
 
 
-view : RangeSlider a -> Html a
-view (RangeSlider slider) =
+view : Config a -> Html a
+view (Config slider) =
     div []
         [ div
             [ Html.Attributes.class "input-range-container" ]
             [ Html.input
                 [ Html.Attributes.type_ "range"
-                , Html.Attributes.min <| String.fromFloat slider.config.min
-                , Html.Attributes.max <| String.fromFloat slider.config.max
-                , Html.Attributes.step <| String.fromFloat slider.config.step
+                , Html.Attributes.min <| String.fromFloat slider.min
+                , Html.Attributes.max <| String.fromFloat slider.max
+                , Html.Attributes.step <| String.fromFloat slider.step
                 , Html.Attributes.class "input-range"
-                , Html.Attributes.style "direction" <|
-                    "ltr"
-                , onChange slider.config.change
-                , onInput slider.config.input
+                , Html.Attributes.style "direction" <| "ltr"
+                , onChange slider.change
+                , onInput slider.input
                 ]
                 []
             ]
@@ -121,7 +94,7 @@ view (RangeSlider slider) =
             [ Html.Attributes.class "input-range-labels-container" ]
             [ div [ Html.Attributes.class "input-range-label" ] []
             , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text <| String.fromFloat slider.config.value ]
+                [ Html.text <| String.fromFloat slider.value ]
             , div [ Html.Attributes.class "input-range-label" ] []
             ]
         ]
