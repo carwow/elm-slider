@@ -16,7 +16,9 @@ main =
 
 
 type alias Model =
-    { slider : RangeSlider.Config Msg
+    { singleSlider : RangeSlider.Config Msg
+
+    -- , doubleSlider : RangeSlider.Config Msg
     }
 
 
@@ -28,7 +30,10 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     let
         model =
-            { slider = RangeSlider.defaultConfig handleSliderInput handleSliderChange }
+            { singleSlider = RangeSlider.defaultSingleSlider handleSliderInput handleSliderChange
+
+            -- , doubleSlider = RangeSlider.defaultDoubleSlider handleSliderInput handleSliderChange handleSliderInput handleSliderChange
+            }
     in
     ( model, Cmd.none )
 
@@ -51,17 +56,17 @@ update msg model =
 
         SliderInput str ->
             let
-                newModel =
-                    { model | slider = RangeSlider.updateValue (String.toFloat str |> Maybe.withDefault 0) model.slider }
+                newSlider =
+                    RangeSlider.updateSingleSliderValue (Maybe.withDefault 0 (String.toFloat str)) model.singleSlider
             in
-            ( newModel, Cmd.none )
+            ( { model | singleSlider = newSlider }, Cmd.none )
 
         SliderChange str ->
             let
-                newModel =
-                    { model | slider = RangeSlider.updateValue (String.toFloat str |> Maybe.withDefault 0) model.slider }
+                newSlider =
+                    RangeSlider.updateSingleSliderValue (Maybe.withDefault 0 (String.toFloat str)) model.singleSlider
             in
-            ( newModel, Cmd.none )
+            ( { model | singleSlider = newSlider }, Cmd.none )
 
 
 
@@ -81,7 +86,10 @@ handleSliderChange str =
 view : Model -> Html Msg
 view model =
     div []
-        [ RangeSlider.view model.slider ]
+        [ RangeSlider.view model.singleSlider
+
+        -- , RangeSlider.view model.doubleSlider
+        ]
 
 
 subscriptions : Model -> Sub msg
