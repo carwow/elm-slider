@@ -1,4 +1,4 @@
-module RangeSlider exposing (Config, SliderAttributes, SliderType, defaultSingleSlider, updateDoubleSliderHighValue, updateDoubleSliderLowValue, updateSingleSliderValue, view)
+module RangeSlider exposing (Slider, SliderAttributes, defaultDoubleSlider, defaultSingleSlider, update, view)
 
 import Browser.Events exposing (..)
 import Html exposing (..)
@@ -11,13 +11,9 @@ import Json.Decode exposing (..)
 -- STATE
 
 
-type Config a
-    = Config (SliderType a)
-
-
-type SliderType a
-    = Single (SliderAttributes a)
-    | Double { low : SliderAttributes a, high : SliderAttributes a }
+type Slider a
+    = SingleSlider (SliderAttributes a)
+    | DoubleSlider { low : SliderAttributes a, high : SliderAttributes a }
 
 
 type alias SliderAttributes a =
@@ -44,30 +40,29 @@ onInput msg =
     Html.Events.on "input" (Json.Decode.map msg Html.Events.targetValue)
 
 
-sliderView : SliderAttributes a -> Html a
-sliderView attributes =
-    div []
-        [ div
-            [ Html.Attributes.class "input-range-container" ]
-            [ Html.input
-                [ Html.Attributes.type_ "range"
-                , Html.Attributes.min <| String.fromFloat attributes.min
-                , Html.Attributes.max <| String.fromFloat attributes.max
-                , Html.Attributes.step <| String.fromFloat attributes.step
-                , Html.Attributes.class "input-range"
-                , Html.Attributes.style "direction" <| "ltr"
-                , onChange attributes.change
-                , onInput attributes.input
-                ]
-                []
-            ]
-        , div
-            [ Html.Attributes.class "input-range-labels-container" ]
-            [ div [ Html.Attributes.class "input-range-label" ] []
-            , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text <| String.fromFloat attributes.value ]
-            , div [ Html.Attributes.class "input-range-label" ] []
-            ]
+sliderInputView : SliderAttributes a -> Html a
+sliderInputView attributes =
+    Html.input
+        [ Html.Attributes.type_ "range"
+        , Html.Attributes.min <| String.fromFloat attributes.min
+        , Html.Attributes.max <| String.fromFloat attributes.max
+        , Html.Attributes.step <| String.fromFloat attributes.step
+        , Html.Attributes.class "input-range"
+        , Html.Attributes.style "direction" <| "ltr"
+        , onChange attributes.change
+        , onInput attributes.input
+        ]
+        []
+
+
+sliderLabelView : SliderAttributes a -> Html a
+sliderLabelView attributes =
+    div
+        [ Html.Attributes.class "input-range-labels-container" ]
+        [ div [ Html.Attributes.class "input-range-label" ] []
+        , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+            [ Html.text <| String.fromFloat attributes.value ]
+        , div [ Html.Attributes.class "input-range-label" ] []
         ]
 
 
@@ -86,69 +81,38 @@ defaultSliderAttributes change input =
     }
 
 
-defaultSingleSlider : (String -> a) -> (String -> a) -> Config a
+defaultSingleSlider : (String -> a) -> (String -> a) -> Slider a
 defaultSingleSlider change input =
-    Config (Single <| defaultSliderAttributes change input)
+    SingleSlider <| defaultSliderAttributes change input
 
 
-defaultDoubleSlider : (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> Config a
+defaultDoubleSlider : (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> Slider a
 defaultDoubleSlider lowChange lowInput highChange highInput =
-    Config (Double <| { low = defaultSliderAttributes lowChange lowInput, high = defaultSliderAttributes highChange highInput })
+    DoubleSlider <| { low = defaultSliderAttributes lowChange lowInput, high = defaultSliderAttributes highChange highInput }
 
 
-updateSingleSliderValue : Float -> Config a -> Config a
-updateSingleSliderValue value (Config slider) =
+update : { value : Maybe Float, lowValue : Maybe Float, highValue : Maybe Float } -> Slider a -> Slider a
+update attrs slider =
     case slider of
-        Single attributes ->
-            let
-                updatedAttributes =
-                    { attributes | value = value }
-            in
-            Config (Single updatedAttributes)
+        SingleSlider attributes ->
+            SingleSlider { attributes | value = Maybe.withDefault attributes.value attrs.value }
 
-        Double attributes ->
-            Config slider
+        DoubleSlider { low, high } ->
+            DoubleSlider
+                { low = { low | value = Maybe.withDefault low.value attrs.lowValue }
+                , high = { high | value = Maybe.withDefault high.value attrs.highValue }
+                }
 
 
-updateDoubleSliderLowValue : Float -> Config a -> Config a
-updateDoubleSliderLowValue value (Config slider) =
+view : Slider a -> Html a
+view slider =
     case slider of
-        Single attributes ->
-            Config slider
+        SingleSlider attributes ->
+            div [] [ sliderInputView attributes, sliderLabelView attributes ]
 
-        Double attributes ->
-            let
-                lowAttributes =
-                    attributes.low
-
-                updatedAttributes =
-                    { attributes | low = { lowAttributes | value = value } }
-            in
-            Config (Double updatedAttributes)
-
-
-updateDoubleSliderHighValue : Float -> Config a -> Config a
-updateDoubleSliderHighValue value (Config slider) =
-    case slider of
-        Single attributes ->
-            Config slider
-
-        Double attributes ->
-            let
-                highAttributes =
-                    attributes.high
-
-                updatedAttributes =
-                    { attributes | high = { highAttributes | value = value } }
-            in
-            Config (Double updatedAttributes)
-
-
-view : Config a -> Html a
-view (Config slider) =
-    case slider of
-        Single attributes ->
-            div [] [ sliderView attributes ]
-
-        Double attributes ->
-            div [] [ sliderView attributes.low, sliderView attributes.high ]
+        DoubleSlider attributes ->
+            div []
+                [ sliderInputView attributes.low
+                , sliderInputView attributes.high
+                , div [] [ sliderLabelView attributes.low, sliderLabelView attributes.high ]
+                ]
