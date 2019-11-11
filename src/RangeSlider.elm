@@ -1,4 +1,4 @@
-module RangeSlider exposing (Slider, SliderAttributes, defaultDoubleSlider, defaultSingleSlider, update, view)
+module RangeSlider exposing (Slider, SliderAttributes, defaultDoubleSlider, defaultSingleSlider, update, updateValue, view)
 
 import Browser.Events exposing (..)
 import Html exposing (..)
@@ -40,19 +40,44 @@ onInput msg =
     Html.Events.on "input" (Json.Decode.map msg Html.Events.targetValue)
 
 
+calculateProgressPercentages : SliderAttributes a -> { left : Float, right : Float }
+calculateProgressPercentages model =
+    let
+        progressRatio =
+            100 / (model.max - model.min)
+
+        value =
+            clamp model.min model.max model.value
+    in
+    { left = 0.0, right = (model.max - value) * progressRatio }
+
+
 sliderInputView : SliderAttributes a -> Html a
 sliderInputView attributes =
-    Html.input
-        [ Html.Attributes.type_ "range"
-        , Html.Attributes.min <| String.fromFloat attributes.min
-        , Html.Attributes.max <| String.fromFloat attributes.max
-        , Html.Attributes.step <| String.fromFloat attributes.step
-        , Html.Attributes.class "input-range"
-        , Html.Attributes.style "direction" <| "ltr"
-        , onChange attributes.change
-        , onInput attributes.input
+    let
+        progressPercentages =
+            calculateProgressPercentages attributes
+
+        progressAttributes =
+            [ Html.Attributes.class "input-range__progress"
+            , Html.Attributes.style "left" <| String.fromFloat progressPercentages.left ++ "%"
+            , Html.Attributes.style "right" <| String.fromFloat progressPercentages.right ++ "%"
+            ]
+    in
+    div [ Html.Attributes.class "input-range-container" ]
+        [ Html.input
+            [ Html.Attributes.type_ "range"
+            , Html.Attributes.min <| String.fromFloat attributes.min
+            , Html.Attributes.max <| String.fromFloat attributes.max
+            , Html.Attributes.step <| String.fromFloat attributes.step
+            , Html.Attributes.class "input-range"
+            , onChange attributes.change
+            , onInput attributes.input
+            ]
+            []
+        , div [ Html.Attributes.class "input-range__track" ] []
+        , div progressAttributes []
         ]
-        []
 
 
 sliderLabelView : SliderAttributes a -> Html a
@@ -91,17 +116,54 @@ defaultDoubleSlider lowChange lowInput highChange highInput =
     DoubleSlider <| { low = defaultSliderAttributes lowChange lowInput, high = defaultSliderAttributes highChange highInput }
 
 
-update : { value : Maybe Float, lowValue : Maybe Float, highValue : Maybe Float } -> Slider a -> Slider a
+update :
+    { min : Maybe Float
+    , max : Maybe Float
+    , step : Maybe Float
+    , value : Maybe Float
+    , lowValue : Maybe Float
+    , highValue : Maybe Float
+    }
+    -> Slider a
+    -> Slider a
 update attrs slider =
     case slider of
         SingleSlider attributes ->
-            SingleSlider { attributes | value = Maybe.withDefault attributes.value attrs.value }
+            SingleSlider
+                { attributes
+                    | value = Maybe.withDefault attributes.value attrs.value
+                    , min = Maybe.withDefault attributes.min attrs.min
+                    , max = Maybe.withDefault attributes.max attrs.max
+                    , step = Maybe.withDefault attributes.step attrs.step
+                }
 
         DoubleSlider { low, high } ->
             DoubleSlider
-                { low = { low | value = Maybe.withDefault low.value attrs.lowValue }
-                , high = { high | value = Maybe.withDefault high.value attrs.highValue }
+                { low =
+                    { low
+                        | value = Maybe.withDefault low.value attrs.lowValue
+                        , min = Maybe.withDefault low.min attrs.min
+                        , max = Maybe.withDefault low.max attrs.max
+                        , step = Maybe.withDefault low.step attrs.step
+                    }
+                , high =
+                    { high
+                        | value = Maybe.withDefault high.value attrs.highValue
+                        , min = Maybe.withDefault high.min attrs.min
+                        , max = Maybe.withDefault high.max attrs.max
+                        , step = Maybe.withDefault high.step attrs.step
+                    }
                 }
+
+
+updateValue : Maybe Float -> Slider a -> Slider a
+updateValue value slider =
+    case slider of
+        SingleSlider attributes ->
+            SingleSlider { attributes | value = Maybe.withDefault attributes.value value }
+
+        DoubleSlider { low, high } ->
+            DoubleSlider { low = low, high = high }
 
 
 view : Slider a -> Html a
