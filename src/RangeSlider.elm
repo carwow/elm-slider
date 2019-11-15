@@ -1,6 +1,7 @@
-module RangeSlider exposing (Slider, SliderAttributes, defaultDoubleSlider, defaultSingleSlider, update, updateValue, view)
+module RangeSlider exposing (CommonAttributes, Slider, ValueAttributes, defaultDoubleSlider, defaultFormatter, defaultSingleSlider, defaultValueFormatter, update, updateValue, view)
 
 import Browser.Events exposing (..)
+import DOM exposing (boundingClientRect)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -12,22 +13,125 @@ import Json.Decode exposing (..)
 
 
 type Slider a
-    = SingleSlider (SliderAttributes a)
-    | DoubleSlider { low : SliderAttributes a, high : SliderAttributes a }
+    = SingleSlider { commonAttributes : CommonAttributes a, valueAttributes : ValueAttributes a }
+    | DoubleSlider { commonAttributes : CommonAttributes a, lowValueAttributes : ValueAttributes a, highValueAttributes : ValueAttributes a }
 
 
-type alias SliderAttributes a =
+type alias ValueAttributes a =
     { change : String -> a
     , input : String -> a
-    , max : Float
+    , value : Float
+    , formatter : { value : Float, max : Float } -> String
+    }
+
+
+type alias CommonAttributes a =
+    { max : Float
     , min : Float
     , step : Float
-    , value : Float
+    , click : String -> a
+    , minFormatter : { value : Float } -> String
+    , maxFormatter : { value : Float } -> String
     }
 
 
 
 -- Internals
+
+
+closestStep : Float -> Float -> Int
+closestStep value step =
+    let
+        roundedValue =
+            round value
+
+        roundedStep =
+            if round step > 0 then
+                round step
+
+            else
+                1
+
+        remainder =
+            remainderBy roundedStep roundedValue
+    in
+    if remainder > (roundedStep // 2) then
+        (roundedValue - remainder) + roundedStep
+
+    else
+        roundedValue - remainder
+
+
+snapValue : Float -> CommonAttributes a -> Float
+snapValue value model =
+    let
+        roundedStep =
+            round model.step
+
+        adjustedRoundedStep =
+            if roundedStep > 0 then
+                roundedStep
+
+            else
+                1
+
+        newValue =
+            value / toFloat adjustedRoundedStep
+
+        roundedValue =
+            floor newValue
+
+        nextValue =
+            toFloat (roundedValue * adjustedRoundedStep)
+    in
+    nextValue
+
+
+onOutsideRangeClick : CommonAttributes a -> Json.Decode.Decoder a
+onOutsideRangeClick model =
+    let
+        valueDecoder =
+            Json.Decode.map2
+                (\rectangle mouseX ->
+                    let
+                        clickedValue =
+                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+
+                        newValue =
+                            closestStep clickedValue model.step
+                    in
+                    String.fromInt newValue
+                )
+                (Json.Decode.at [ "target" ] boundingClientRect)
+                (Json.Decode.at [ "offsetX" ] Json.Decode.float)
+    in
+    Json.Decode.map model.click valueDecoder
+
+
+onInsideRangeClick : CommonAttributes a -> ValueAttributes a -> Json.Decode.Decoder a
+onInsideRangeClick model value =
+    let
+        valueDecoder =
+            Json.Decode.map2
+                (\rectangle mouseX ->
+                    let
+                        adjustedValue =
+                            clamp model.min model.max value.value
+
+                        newValue =
+                            round <|
+                                adjustedValue
+                                    - ((mouseX / rectangle.width) * (adjustedValue - model.min))
+
+                        adjustedNewValue =
+                            clamp model.min model.max <| toFloat newValue
+                    in
+                    String.fromFloat adjustedNewValue
+                )
+                (Json.Decode.at [ "target" ] boundingClientRect)
+                (Json.Decode.at [ "offsetX" ] Json.Decode.float)
+    in
+    Json.Decode.map model.click valueDecoder
 
 
 onChange : (String -> a) -> Html.Attribute a
@@ -40,54 +144,69 @@ onInput msg =
     Html.Events.on "input" (Json.Decode.map msg Html.Events.targetValue)
 
 
-calculateProgressPercentages : SliderAttributes a -> { left : Float, right : Float }
-calculateProgressPercentages model =
+onClick : Json.Decode.Decoder a -> Html.Attribute a
+onClick decoder =
+    Html.Events.on "click" decoder
+
+
+calculateProgressPercentages : CommonAttributes a -> ValueAttributes a -> { left : Float, right : Float }
+calculateProgressPercentages commonAttributes valueAttributes =
     let
         progressRatio =
-            100 / (model.max - model.min)
+            100 / (commonAttributes.max - commonAttributes.min)
 
         value =
-            clamp model.min model.max model.value
+            clamp commonAttributes.min commonAttributes.max valueAttributes.value
     in
-    { left = 0.0, right = (model.max - value) * progressRatio }
+    { left = 0.0, right = (commonAttributes.max - value) * progressRatio }
 
 
-sliderInputView : SliderAttributes a -> Html a
-sliderInputView attributes =
+sliderInputView : CommonAttributes a -> ValueAttributes a -> Html a
+sliderInputView commonAttributes valueAttributes =
     let
+        track =
+            [ Html.Attributes.class "input-range__track", onClick (onOutsideRangeClick commonAttributes) ]
+
         progressPercentages =
-            calculateProgressPercentages attributes
+            calculateProgressPercentages commonAttributes valueAttributes
 
         progressAttributes =
             [ Html.Attributes.class "input-range__progress"
             , Html.Attributes.style "left" <| String.fromFloat progressPercentages.left ++ "%"
             , Html.Attributes.style "right" <| String.fromFloat progressPercentages.right ++ "%"
+            , onClick (onInsideRangeClick commonAttributes valueAttributes)
             ]
     in
     div [ Html.Attributes.class "input-range-container" ]
         [ Html.input
             [ Html.Attributes.type_ "range"
-            , Html.Attributes.min <| String.fromFloat attributes.min
-            , Html.Attributes.max <| String.fromFloat attributes.max
-            , Html.Attributes.step <| String.fromFloat attributes.step
+            , Html.Attributes.min <| String.fromFloat commonAttributes.min
+            , Html.Attributes.max <| String.fromFloat commonAttributes.max
+            , Html.Attributes.step <| String.fromFloat commonAttributes.step
+            , Html.Attributes.value <| String.fromFloat valueAttributes.value
             , Html.Attributes.class "input-range"
-            , onChange attributes.change
-            , onInput attributes.input
+            , onChange valueAttributes.change
+            , onInput valueAttributes.input
             ]
             []
-        , div [ Html.Attributes.class "input-range__track" ] []
+        , div track []
         , div progressAttributes []
         ]
 
 
-sliderLabelView : SliderAttributes a -> Html a
-sliderLabelView attributes =
+sliderLabelView : CommonAttributes a -> ValueAttributes a -> Html a
+sliderLabelView commonAttributes valueAttributes =
     div
         [ Html.Attributes.class "input-range-labels-container" ]
-        [ div [ Html.Attributes.class "input-range-label" ] []
-        , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-            [ Html.text <| String.fromFloat attributes.value ]
-        , div [ Html.Attributes.class "input-range-label" ] []
+        [ div
+            [ Html.Attributes.class "input-range-label" ]
+            [ Html.text <| commonAttributes.minFormatter { value = commonAttributes.min } ]
+        , div
+            [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+            [ Html.text <| valueAttributes.formatter { value = valueAttributes.value, max = commonAttributes.max } ]
+        , div
+            [ Html.Attributes.class "input-range-label" ]
+            [ Html.text <| commonAttributes.maxFormatter { value = commonAttributes.max } ]
         ]
 
 
@@ -95,25 +214,53 @@ sliderLabelView attributes =
 -- API
 
 
-defaultSliderAttributes : (String -> a) -> (String -> a) -> SliderAttributes a
-defaultSliderAttributes change input =
+defaultFormatter : { value : Float } -> String
+defaultFormatter value =
+    String.fromFloat value.value
+
+
+defaultValueFormatter : { value : Float, max : Float } -> String
+defaultValueFormatter values =
+    if values.value == values.max then
+        ""
+
+    else
+        String.fromFloat values.value
+
+
+defaultCommonAttributes : (String -> a) -> CommonAttributes a
+defaultCommonAttributes click =
     { max = 1000
     , min = 0
     , step = 100
-    , value = 500
-    , change = change
-    , input = input
+    , click = click
+    , minFormatter = defaultFormatter
+    , maxFormatter = defaultFormatter
     }
 
 
-defaultSingleSlider : (String -> a) -> (String -> a) -> Slider a
-defaultSingleSlider change input =
-    SingleSlider <| defaultSliderAttributes change input
+defaultValueAttributes : (String -> a) -> (String -> a) -> ValueAttributes a
+defaultValueAttributes change input =
+    { value = 500
+    , change = change
+    , input = input
+    , formatter = defaultValueFormatter
+    }
 
 
-defaultDoubleSlider : (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> Slider a
-defaultDoubleSlider lowChange lowInput highChange highInput =
-    DoubleSlider <| { low = defaultSliderAttributes lowChange lowInput, high = defaultSliderAttributes highChange highInput }
+defaultSingleSlider : (String -> a) -> (String -> a) -> (String -> a) -> Slider a
+defaultSingleSlider click change input =
+    SingleSlider
+        { commonAttributes = defaultCommonAttributes click, valueAttributes = defaultValueAttributes change input }
+
+
+defaultDoubleSlider : (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> Slider a
+defaultDoubleSlider click lowChange lowInput highChange highInput =
+    DoubleSlider
+        { commonAttributes = defaultCommonAttributes click
+        , lowValueAttributes = defaultValueAttributes lowChange lowInput
+        , highValueAttributes = defaultValueAttributes highChange highInput
+        }
 
 
 update :
@@ -128,53 +275,84 @@ update :
     -> Slider a
 update attrs slider =
     case slider of
-        SingleSlider attributes ->
+        SingleSlider { commonAttributes, valueAttributes } ->
             SingleSlider
-                { attributes
-                    | value = Maybe.withDefault attributes.value attrs.value
-                    , min = Maybe.withDefault attributes.min attrs.min
-                    , max = Maybe.withDefault attributes.max attrs.max
-                    , step = Maybe.withDefault attributes.step attrs.step
+                { commonAttributes =
+                    { commonAttributes
+                        | min = Maybe.withDefault commonAttributes.min attrs.min
+                        , max = Maybe.withDefault commonAttributes.max attrs.max
+                        , step = Maybe.withDefault commonAttributes.step attrs.step
+                    }
+                , valueAttributes =
+                    { valueAttributes
+                        | value = Maybe.withDefault valueAttributes.value attrs.value
+                    }
                 }
 
-        DoubleSlider { low, high } ->
+        DoubleSlider { commonAttributes, lowValueAttributes, highValueAttributes } ->
             DoubleSlider
-                { low =
-                    { low
-                        | value = Maybe.withDefault low.value attrs.lowValue
-                        , min = Maybe.withDefault low.min attrs.min
-                        , max = Maybe.withDefault low.max attrs.max
-                        , step = Maybe.withDefault low.step attrs.step
+                { commonAttributes =
+                    { commonAttributes
+                        | min = Maybe.withDefault commonAttributes.min attrs.min
+                        , max = Maybe.withDefault commonAttributes.max attrs.max
+                        , step = Maybe.withDefault commonAttributes.step attrs.step
                     }
-                , high =
-                    { high
-                        | value = Maybe.withDefault high.value attrs.highValue
-                        , min = Maybe.withDefault high.min attrs.min
-                        , max = Maybe.withDefault high.max attrs.max
-                        , step = Maybe.withDefault high.step attrs.step
+                , lowValueAttributes =
+                    { lowValueAttributes
+                        | value = Maybe.withDefault lowValueAttributes.value attrs.lowValue
+                    }
+                , highValueAttributes =
+                    { highValueAttributes
+                        | value = Maybe.withDefault highValueAttributes.value attrs.highValue
                     }
                 }
 
 
-updateValue : Maybe Float -> Slider a -> Slider a
-updateValue value slider =
+updateValue :
+    { value : Maybe Float
+    , lowValue : Maybe Float
+    , highValue : Maybe Float
+    }
+    -> Slider a
+    -> Slider a
+updateValue values slider =
     case slider of
-        SingleSlider attributes ->
-            SingleSlider { attributes | value = Maybe.withDefault attributes.value value }
+        SingleSlider { commonAttributes, valueAttributes } ->
+            SingleSlider
+                { valueAttributes = { valueAttributes | value = Maybe.withDefault valueAttributes.value values.value }
+                , commonAttributes = commonAttributes
+                }
 
-        DoubleSlider { low, high } ->
-            DoubleSlider { low = low, high = high }
+        DoubleSlider { lowValueAttributes, highValueAttributes, commonAttributes } ->
+            DoubleSlider
+                { commonAttributes = commonAttributes
+                , lowValueAttributes =
+                    { lowValueAttributes
+                        | value = Maybe.withDefault lowValueAttributes.value values.lowValue
+                    }
+                , highValueAttributes =
+                    { highValueAttributes
+                        | value = Maybe.withDefault highValueAttributes.value values.highValue
+                    }
+                }
 
 
 view : Slider a -> Html a
 view slider =
     case slider of
-        SingleSlider attributes ->
-            div [] [ sliderInputView attributes, sliderLabelView attributes ]
-
-        DoubleSlider attributes ->
+        SingleSlider { commonAttributes, valueAttributes } ->
             div []
-                [ sliderInputView attributes.low
-                , sliderInputView attributes.high
-                , div [] [ sliderLabelView attributes.low, sliderLabelView attributes.high ]
+                [ sliderInputView commonAttributes valueAttributes
+                , sliderLabelView commonAttributes valueAttributes
+                ]
+
+        DoubleSlider { lowValueAttributes, highValueAttributes, commonAttributes } ->
+            div []
+                [ sliderInputView commonAttributes lowValueAttributes
+                , sliderInputView commonAttributes highValueAttributes
+                , div
+                    []
+                    [ sliderLabelView commonAttributes lowValueAttributes
+                    , sliderLabelView commonAttributes highValueAttributes
+                    ]
                 ]
