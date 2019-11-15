@@ -1,4 +1,4 @@
-module RangeSlider exposing (CommonAttributes, Slider, ValueAttributes, defaultDoubleSlider, defaultFormatter, defaultSingleSlider, defaultValueFormatter, update, updateValue, view)
+module RangeSlider exposing (CommonAttributes, Slider, ValueAttributes, defaultFormatter, defaultValueFormatter, initSingleSlider, updateValue, view)
 
 import Browser.Events exposing (..)
 import DOM exposing (boundingClientRect)
@@ -228,84 +228,75 @@ defaultValueFormatter values =
         String.fromFloat values.value
 
 
-defaultCommonAttributes : (String -> a) -> CommonAttributes a
-defaultCommonAttributes click =
-    { max = 1000
-    , min = 0
-    , step = 100
-    , click = click
-    , minFormatter = defaultFormatter
-    , maxFormatter = defaultFormatter
+initSingleSlider :
+    { min : Float
+    , max : Float
+    , step : Float
+    , value : Float
+    , onChange : String -> a
+    , onInput : String -> a
+    , onClick : String -> a
+    , valueFormatter : { value : Float, max : Float } -> String
+    , minFormatter : { value : Float } -> String
+    , maxFormatter : { value : Float } -> String
     }
-
-
-defaultValueAttributes : (String -> a) -> (String -> a) -> ValueAttributes a
-defaultValueAttributes change input =
-    { value = 500
-    , change = change
-    , input = input
-    , formatter = defaultValueFormatter
-    }
-
-
-defaultSingleSlider : (String -> a) -> (String -> a) -> (String -> a) -> Slider a
-defaultSingleSlider click change input =
+    -> Slider a
+initSingleSlider attrs =
     SingleSlider
-        { commonAttributes = defaultCommonAttributes click, valueAttributes = defaultValueAttributes change input }
-
-
-defaultDoubleSlider : (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> (String -> a) -> Slider a
-defaultDoubleSlider click lowChange lowInput highChange highInput =
-    DoubleSlider
-        { commonAttributes = defaultCommonAttributes click
-        , lowValueAttributes = defaultValueAttributes lowChange lowInput
-        , highValueAttributes = defaultValueAttributes highChange highInput
+        { commonAttributes =
+            { min = attrs.min
+            , max = attrs.max
+            , step = attrs.step
+            , click = attrs.onClick
+            , minFormatter = attrs.minFormatter
+            , maxFormatter = attrs.maxFormatter
+            }
+        , valueAttributes =
+            { value = attrs.value
+            , change = attrs.onChange
+            , input = attrs.onInput
+            , formatter = attrs.valueFormatter
+            }
         }
 
 
-update :
-    { min : Maybe Float
-    , max : Maybe Float
-    , step : Maybe Float
-    , value : Maybe Float
-    , lowValue : Maybe Float
-    , highValue : Maybe Float
+initDoubleSlider :
+    { min : Float
+    , max : Float
+    , step : Float
+    , lowValue : Float
+    , highValue : Float
+    , onChange : String -> a
+    , onInput : String -> a
+    , onClick : String -> a
+    , valueFormatter : { value : Float, max : Float } -> String
+    , minFormatter : { value : Float } -> String
+    , maxFormatter : { value : Float } -> String
     }
     -> Slider a
-    -> Slider a
-update attrs slider =
-    case slider of
-        SingleSlider { commonAttributes, valueAttributes } ->
-            SingleSlider
-                { commonAttributes =
-                    { commonAttributes
-                        | min = Maybe.withDefault commonAttributes.min attrs.min
-                        , max = Maybe.withDefault commonAttributes.max attrs.max
-                        , step = Maybe.withDefault commonAttributes.step attrs.step
-                    }
-                , valueAttributes =
-                    { valueAttributes
-                        | value = Maybe.withDefault valueAttributes.value attrs.value
-                    }
-                }
-
-        DoubleSlider { commonAttributes, lowValueAttributes, highValueAttributes } ->
-            DoubleSlider
-                { commonAttributes =
-                    { commonAttributes
-                        | min = Maybe.withDefault commonAttributes.min attrs.min
-                        , max = Maybe.withDefault commonAttributes.max attrs.max
-                        , step = Maybe.withDefault commonAttributes.step attrs.step
-                    }
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Maybe.withDefault lowValueAttributes.value attrs.lowValue
-                    }
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Maybe.withDefault highValueAttributes.value attrs.highValue
-                    }
-                }
+initDoubleSlider attrs =
+    DoubleSlider
+        { commonAttributes =
+            { min = attrs.min
+            , max = attrs.max
+            , step = attrs.step
+            , click = attrs.onClick
+            , minFormatter = attrs.minFormatter
+            , maxFormatter = attrs.maxFormatter
+            }
+        , lowValueAttributes =
+            { value = attrs.lowValue
+            , change = attrs.onChange
+            , input = attrs.onInput
+            , formatter = attrs.valueFormatter
+            }
+        , highValueAttributes =
+            { value = attrs.highValue
+            , change = attrs.onChange
+            , input = attrs.onInput
+            , formatter = attrs.valueFormatter
+            }
+        }
 
 
 updateValue :

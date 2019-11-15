@@ -28,7 +28,19 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     let
         model =
-            { singleSlider = RangeSlider.defaultSingleSlider handleSliderInput handleSliderChange handleSliderChange
+            { singleSlider =
+                RangeSlider.initSingleSlider
+                    { min = 0
+                    , max = 1000
+                    , value = 500
+                    , step = 50
+                    , onChange = handleSliderChange
+                    , onInput = handleSliderInput
+                    , onClick = handleSliderChange
+                    , valueFormatter = RangeSlider.defaultValueFormatter
+                    , minFormatter = RangeSlider.defaultFormatter
+                    , maxFormatter = RangeSlider.defaultFormatter
+                    }
             }
     in
     ( model, Cmd.none )
@@ -53,14 +65,24 @@ update msg model =
         SliderInput str ->
             let
                 newSlider =
-                    RangeSlider.update { min = Nothing, max = Nothing, step = Nothing, value = String.toFloat str, lowValue = Nothing, highValue = Nothing } model.singleSlider
+                    RangeSlider.updateValue
+                        { value = String.toFloat str
+                        , lowValue = Nothing
+                        , highValue = Nothing
+                        }
+                        model.singleSlider
             in
             ( { model | singleSlider = newSlider }, Cmd.none )
 
         SliderChange str ->
             let
                 newSlider =
-                    RangeSlider.update { min = Nothing, max = Nothing, step = Nothing, value = String.toFloat str, lowValue = Nothing, highValue = Nothing } model.singleSlider
+                    RangeSlider.updateValue
+                        { value = String.toFloat str
+                        , lowValue = Nothing
+                        , highValue = Nothing
+                        }
+                        model.singleSlider
             in
             ( { model | singleSlider = newSlider }, Cmd.none )
 
