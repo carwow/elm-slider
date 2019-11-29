@@ -52,8 +52,8 @@ init flags =
 
 type Msg
     = NoOp
-    | SliderInput String
-    | SliderChange String
+    | SliderInput Float
+    | SliderChange Float
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -66,7 +66,7 @@ update msg model =
             let
                 newSlider =
                     RangeSlider.updateValue
-                        { value = String.toFloat str
+                        { value = Just str
                         , lowValue = Nothing
                         , highValue = Nothing
                         }
@@ -78,7 +78,7 @@ update msg model =
             let
                 newSlider =
                     RangeSlider.updateValue
-                        { value = String.toFloat str
+                        { value = Just str
                         , lowValue = Nothing
                         , highValue = Nothing
                         }
@@ -91,12 +91,12 @@ update msg model =
 -- VIEW
 
 
-handleSliderInput : String -> Msg
+handleSliderInput : Float -> Msg
 handleSliderInput str =
     SliderInput str
 
 
-handleSliderChange : String -> Msg
+handleSliderChange : Float -> Msg
 handleSliderChange str =
     SliderChange str
 

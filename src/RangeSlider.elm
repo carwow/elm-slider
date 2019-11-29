@@ -18,8 +18,8 @@ type Slider a
 
 
 type alias ValueAttributes a =
-    { change : String -> a
-    , input : String -> a
+    { change : Float -> a
+    , input : Float -> a
     , value : Float
     , formatter : { value : Float, max : Float } -> String
     }
@@ -29,7 +29,7 @@ type alias CommonAttributes a =
     { max : Float
     , min : Float
     , step : Float
-    , click : String -> a
+    , click : Float -> a
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
     }
@@ -100,7 +100,7 @@ onOutsideRangeClick model =
                         newValue =
                             closestStep clickedValue model.step
                     in
-                    String.fromInt newValue
+                    toFloat newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -126,7 +126,7 @@ onInsideRangeClick model value =
                         adjustedNewValue =
                             clamp model.min model.max <| toFloat newValue
                     in
-                    String.fromFloat adjustedNewValue
+                    adjustedNewValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -134,19 +134,25 @@ onInsideRangeClick model value =
     Json.Decode.map model.click valueDecoder
 
 
-onChange : (String -> a) -> Html.Attribute a
-onChange msg =
-    Html.Events.on "change" (Json.Decode.map msg Html.Events.targetValue)
-
-
-onInput : (String -> a) -> Html.Attribute a
-onInput msg =
-    Html.Events.on "input" (Json.Decode.map msg Html.Events.targetValue)
-
-
 onClick : Json.Decode.Decoder a -> Html.Attribute a
 onClick decoder =
     Html.Events.on "click" decoder
+
+
+onChange : (Float -> a) -> Html.Attribute a
+onChange msg =
+    Html.Events.on "change" (Json.Decode.map msg inputDecoder)
+
+
+onInput : (Float -> a) -> Html.Attribute a
+onInput msg =
+    Html.Events.on "input" (Json.Decode.map msg inputDecoder)
+
+
+inputDecoder : Json.Decode.Decoder Float
+inputDecoder =
+    Json.Decode.map (\value -> Maybe.withDefault 0 <| String.toFloat value)
+        Html.Events.targetValue
 
 
 calculateProgressPercentages : CommonAttributes a -> ValueAttributes a -> { left : Float, right : Float }
@@ -233,9 +239,9 @@ initSingleSlider :
     , max : Float
     , step : Float
     , value : Float
-    , onChange : String -> a
-    , onInput : String -> a
-    , onClick : String -> a
+    , onChange : Float -> a
+    , onInput : Float -> a
+    , onClick : Float -> a
     , valueFormatter : { value : Float, max : Float } -> String
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
@@ -266,9 +272,9 @@ initDoubleSlider :
     , step : Float
     , lowValue : Float
     , highValue : Float
-    , onChange : String -> a
-    , onInput : String -> a
-    , onClick : String -> a
+    , onChange : Float -> a
+    , onInput : Float -> a
+    , onClick : Float -> a
     , valueFormatter : { value : Float, max : Float } -> String
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
