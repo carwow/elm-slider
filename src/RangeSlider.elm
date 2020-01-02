@@ -1,4 +1,4 @@
-module RangeSlider exposing (CommonAttributes, Slider, ValueAttributes, defaultFormatter, defaultValueFormatter, initSingleSlider, updateValue, view)
+module RangeSlider exposing (CommonAttributes, DoubleSlider, SingleSlider, ValueAttributes, defaultFormatter, defaultValueFormatter, doubleUpdate, doubleView, initSingleSlider, singleUpdate, singleView)
 
 import Browser.Events exposing (..)
 import DOM exposing (boundingClientRect)
@@ -12,24 +12,27 @@ import Json.Decode exposing (..)
 -- STATE
 
 
-type Slider a
-    = SingleSlider { commonAttributes : CommonAttributes a, valueAttributes : ValueAttributes a }
-    | DoubleSlider { commonAttributes : CommonAttributes a, lowValueAttributes : ValueAttributes a, highValueAttributes : ValueAttributes a }
+type SingleSlider msg
+    = SingleSlider { commonAttributes : CommonAttributes msg, valueAttributes : ValueAttributes msg }
 
 
-type alias ValueAttributes a =
-    { change : Float -> a
-    , input : Float -> a
+type DoubleSlider msg
+    = DoubleSlider { commonAttributes : CommonAttributes msg, lowValueAttributes : ValueAttributes msg, highValueAttributes : ValueAttributes msg }
+
+
+type alias ValueAttributes msg =
+    { change : Float -> msg
+    , input : Float -> msg
     , value : Float
     , formatter : { value : Float, max : Float } -> String
     }
 
 
-type alias CommonAttributes a =
+type alias CommonAttributes msg =
     { max : Float
     , min : Float
     , step : Float
-    , click : Float -> a
+    , click : Float -> msg
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
     }
@@ -62,7 +65,7 @@ closestStep value step =
         roundedValue - remainder
 
 
-snapValue : Float -> CommonAttributes a -> Float
+snapValue : Float -> CommonAttributes msg -> Float
 snapValue value model =
     let
         roundedStep =
@@ -87,7 +90,7 @@ snapValue value model =
     nextValue
 
 
-onOutsideRangeClick : CommonAttributes a -> Json.Decode.Decoder a
+onOutsideRangeClick : CommonAttributes msg -> Json.Decode.Decoder msg
 onOutsideRangeClick model =
     let
         valueDecoder =
@@ -108,7 +111,7 @@ onOutsideRangeClick model =
     Json.Decode.map model.click valueDecoder
 
 
-onInsideRangeClick : CommonAttributes a -> ValueAttributes a -> Json.Decode.Decoder a
+onInsideRangeClick : CommonAttributes msg -> ValueAttributes msg -> Json.Decode.Decoder msg
 onInsideRangeClick model value =
     let
         valueDecoder =
@@ -134,17 +137,17 @@ onInsideRangeClick model value =
     Json.Decode.map model.click valueDecoder
 
 
-onClick : Json.Decode.Decoder a -> Html.Attribute a
+onClick : Json.Decode.Decoder msg -> Html.Attribute msg
 onClick decoder =
     Html.Events.on "click" decoder
 
 
-onChange : (Float -> a) -> Html.Attribute a
+onChange : (Float -> msg) -> Html.Attribute msg
 onChange msg =
     Html.Events.on "change" (Json.Decode.map msg inputDecoder)
 
 
-onInput : (Float -> a) -> Html.Attribute a
+onInput : (Float -> msg) -> Html.Attribute msg
 onInput msg =
     Html.Events.on "input" (Json.Decode.map msg inputDecoder)
 
@@ -155,7 +158,7 @@ inputDecoder =
         Html.Events.targetValue
 
 
-calculateProgressPercentages : CommonAttributes a -> ValueAttributes a -> { left : Float, right : Float }
+calculateProgressPercentages : CommonAttributes msg -> ValueAttributes msg -> { left : Float, right : Float }
 calculateProgressPercentages commonAttributes valueAttributes =
     let
         progressRatio =
@@ -167,7 +170,7 @@ calculateProgressPercentages commonAttributes valueAttributes =
     { left = 0.0, right = (commonAttributes.max - value) * progressRatio }
 
 
-sliderInputView : CommonAttributes a -> ValueAttributes a -> Html a
+sliderInputView : CommonAttributes msg -> ValueAttributes msg -> Html msg
 sliderInputView commonAttributes valueAttributes =
     let
         track =
@@ -200,7 +203,7 @@ sliderInputView commonAttributes valueAttributes =
         ]
 
 
-sliderLabelView : CommonAttributes a -> ValueAttributes a -> Html a
+sliderLabelView : CommonAttributes msg -> ValueAttributes msg -> Html msg
 sliderLabelView commonAttributes valueAttributes =
     div
         [ Html.Attributes.class "input-range-labels-container" ]
@@ -239,14 +242,14 @@ initSingleSlider :
     , max : Float
     , step : Float
     , value : Float
-    , onChange : Float -> a
-    , onInput : Float -> a
-    , onClick : Float -> a
+    , onChange : Float -> msg
+    , onInput : Float -> msg
+    , onClick : Float -> msg
     , valueFormatter : { value : Float, max : Float } -> String
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
     }
-    -> Slider a
+    -> SingleSlider msg
 initSingleSlider attrs =
     SingleSlider
         { commonAttributes =
@@ -272,14 +275,14 @@ initDoubleSlider :
     , step : Float
     , lowValue : Float
     , highValue : Float
-    , onChange : Float -> a
-    , onInput : Float -> a
-    , onClick : Float -> a
+    , onChange : Float -> msg
+    , onInput : Float -> msg
+    , onClick : Float -> msg
     , valueFormatter : { value : Float, max : Float } -> String
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
     }
-    -> Slider a
+    -> DoubleSlider msg
 initDoubleSlider attrs =
     DoubleSlider
         { commonAttributes =
@@ -305,51 +308,45 @@ initDoubleSlider attrs =
         }
 
 
-updateValue :
-    { value : Maybe Float
-    , lowValue : Maybe Float
-    , highValue : Maybe Float
-    }
-    -> Slider a
-    -> Slider a
-updateValue values slider =
-    case slider of
-        SingleSlider { commonAttributes, valueAttributes } ->
-            SingleSlider
-                { valueAttributes = { valueAttributes | value = Maybe.withDefault valueAttributes.value values.value }
-                , commonAttributes = commonAttributes
-                }
-
-        DoubleSlider { lowValueAttributes, highValueAttributes, commonAttributes } ->
-            DoubleSlider
-                { commonAttributes = commonAttributes
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Maybe.withDefault lowValueAttributes.value values.lowValue
-                    }
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Maybe.withDefault highValueAttributes.value values.highValue
-                    }
-                }
+singleUpdate : Float -> SingleSlider msg -> SingleSlider msg
+singleUpdate value (SingleSlider ({ valueAttributes } as slider)) =
+    SingleSlider
+        { valueAttributes = { valueAttributes | value = value }
+        , commonAttributes = slider.commonAttributes
+        }
 
 
-view : Slider a -> Html a
-view slider =
-    case slider of
-        SingleSlider { commonAttributes, valueAttributes } ->
-            div []
-                [ sliderInputView commonAttributes valueAttributes
-                , sliderLabelView commonAttributes valueAttributes
-                ]
+doubleUpdate : Float -> Float -> DoubleSlider msg -> DoubleSlider msg
+doubleUpdate lowValue highValue (DoubleSlider ({ lowValueAttributes, highValueAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = slider.commonAttributes
+        , lowValueAttributes =
+            { lowValueAttributes
+                | value = lowValue
+            }
+        , highValueAttributes =
+            { highValueAttributes
+                | value = highValue
+            }
+        }
 
-        DoubleSlider { lowValueAttributes, highValueAttributes, commonAttributes } ->
-            div []
-                [ sliderInputView commonAttributes lowValueAttributes
-                , sliderInputView commonAttributes highValueAttributes
-                , div
-                    []
-                    [ sliderLabelView commonAttributes lowValueAttributes
-                    , sliderLabelView commonAttributes highValueAttributes
-                    ]
-                ]
+
+singleView : SingleSlider msg -> Html msg
+singleView (SingleSlider slider) =
+    div []
+        [ sliderInputView slider.commonAttributes slider.valueAttributes
+        , sliderLabelView slider.commonAttributes slider.valueAttributes
+        ]
+
+
+doubleView : DoubleSlider msg -> Html msg
+doubleView (DoubleSlider slider) =
+    div []
+        [ sliderInputView slider.commonAttributes slider.lowValueAttributes
+        , sliderInputView slider.commonAttributes slider.highValueAttributes
+        , div
+            []
+            [ sliderLabelView slider.commonAttributes slider.lowValueAttributes
+            , sliderLabelView slider.commonAttributes slider.highValueAttributes
+            ]
+        ]

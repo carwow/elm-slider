@@ -16,7 +16,7 @@ main =
 
 
 type alias Model =
-    { singleSlider : RangeSlider.Slider Msg
+    { singleSlider : RangeSlider.SingleSlider Msg
     }
 
 
@@ -65,11 +65,8 @@ update msg model =
         SliderInput str ->
             let
                 newSlider =
-                    RangeSlider.updateValue
-                        { value = Just str
-                        , lowValue = Nothing
-                        , highValue = Nothing
-                        }
+                    RangeSlider.singleUpdate
+                        str
                         model.singleSlider
             in
             ( { model | singleSlider = newSlider }, Cmd.none )
@@ -77,11 +74,8 @@ update msg model =
         SliderChange str ->
             let
                 newSlider =
-                    RangeSlider.updateValue
-                        { value = Just str
-                        , lowValue = Nothing
-                        , highValue = Nothing
-                        }
+                    RangeSlider.singleUpdate
+                        str
                         model.singleSlider
             in
             ( { model | singleSlider = newSlider }, Cmd.none )
@@ -104,7 +98,7 @@ handleSliderChange str =
 view : Model -> Html Msg
 view model =
     div []
-        [ RangeSlider.view model.singleSlider
+        [ RangeSlider.singleView model.singleSlider
         ]
 
 
