@@ -17,6 +17,7 @@ main =
 
 type alias Model =
     { singleSlider : RangeSlider.SingleSlider Msg
+    , doubleSlider : RangeSlider.DoubleSlider Msg
     }
 
 
@@ -35,11 +36,23 @@ init flags =
                     , value = 500
                     , step = 50
                     , onChange = handleSliderChange
-                    , onInput = handleSliderInput
-                    , onClick = handleSliderChange
                     , valueFormatter = RangeSlider.defaultValueFormatter
                     , minFormatter = RangeSlider.defaultFormatter
                     , maxFormatter = RangeSlider.defaultFormatter
+                    }
+            , doubleSlider =
+                RangeSlider.initDoubleSlider
+                    { min = 0
+                    , max = 1000
+                    , lowValue = 500
+                    , highValue = 750
+                    , step = 50
+                    , onLowChange = handleDoubleSliderLowChange
+                    , onHighChange = handleDoubleSliderHighChange
+                    , valueFormatter = RangeSlider.defaultValueFormatter
+                    , minFormatter = RangeSlider.defaultFormatter
+                    , maxFormatter = RangeSlider.defaultFormatter
+                    , currentRangeFormatter = RangeSlider.defaultCurrentRangeFormatter
                     }
             }
     in
@@ -52,7 +65,8 @@ init flags =
 
 type Msg
     = NoOp
-    | SliderInput Float
+    | DoubleSliderLowChange Float
+    | DoubleSliderHighChange Float
     | SliderChange Float
 
 
@@ -62,14 +76,23 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        SliderInput str ->
+        DoubleSliderLowChange str ->
             let
                 newSlider =
-                    RangeSlider.singleUpdate
-                        str
-                        model.singleSlider
+                    RangeSlider.doubleUpdate
+                        { lowValue = Just str, highValue = Nothing }
+                        model.doubleSlider
             in
-            ( { model | singleSlider = newSlider }, Cmd.none )
+            ( { model | doubleSlider = newSlider }, Cmd.none )
+
+        DoubleSliderHighChange str ->
+            let
+                newSlider =
+                    RangeSlider.doubleUpdate
+                        { lowValue = Nothing, highValue = Just str }
+                        model.doubleSlider
+            in
+            ( { model | doubleSlider = newSlider }, Cmd.none )
 
         SliderChange str ->
             let
@@ -85,20 +108,25 @@ update msg model =
 -- VIEW
 
 
-handleSliderInput : Float -> Msg
-handleSliderInput str =
-    SliderInput str
-
-
 handleSliderChange : Float -> Msg
 handleSliderChange str =
     SliderChange str
 
 
+handleDoubleSliderLowChange : Float -> Msg
+handleDoubleSliderLowChange str =
+    DoubleSliderLowChange str
+
+
+handleDoubleSliderHighChange : Float -> Msg
+handleDoubleSliderHighChange str =
+    DoubleSliderHighChange str
+
+
 view : Model -> Html Msg
 view model =
     div []
-        [ RangeSlider.singleView model.singleSlider
+        [ RangeSlider.doubleView model.doubleSlider
         ]
 
 

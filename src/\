@@ -1,4 +1,4 @@
-module RangeSlider exposing (CommonAttributes, DoubleSlider, SingleSlider, ValueAttributes, defaultCurrentRangeFormatter, defaultFormatter, defaultValueFormatter, doubleUpdate, doubleView, initDoubleSlider, initSingleSlider, singleUpdate, singleView)
+module RangeSlider exposing (CommonAttributes, DoubleSlider, SingleSlider, ValueAttributes, defaultFormatter, defaultValueFormatter, doubleUpdate, doubleView, initSingleSlider, singleUpdate, singleView)
 
 import Browser.Events exposing (..)
 import DOM exposing (boundingClientRect)
@@ -13,19 +13,15 @@ import Json.Decode exposing (..)
 
 
 type SingleSlider msg
-    = SingleSlider
-        { commonAttributes : CommonAttributes msg
-        , valueAttributes : ValueAttributes msg
-        }
+    = SingleSlider { commonAttributes : CommonAttributes msg, valueAttributes : ValueAttributes msg }
 
 
 type DoubleSlider msg
-    = DoubleSlider
-        { commonAttributes : CommonAttributes msg
-        , lowValueAttributes : ValueAttributes msg
-        , highValueAttributes : ValueAttributes msg
-        , currentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
-        }
+    = DoubleSlider { commonAttributes : CommonAttributes msg, lowValueAttributes : ValueAttributes msg, highValueAttributes : ValueAttributes msg }
+
+noop : Float -> msg
+noop =
+    identity
 
 
 type alias ValueAttributes msg =
@@ -174,80 +170,10 @@ calculateProgressPercentages commonAttributes valueAttributes =
 
 sliderInputView : CommonAttributes msg -> ValueAttributes msg -> Html msg
 sliderInputView commonAttributes valueAttributes =
-    Html.input
-        [ Html.Attributes.type_ "range"
-        , Html.Attributes.min <| String.fromFloat commonAttributes.min
-        , Html.Attributes.max <| String.fromFloat commonAttributes.max
-        , Html.Attributes.step <| String.fromFloat commonAttributes.step
-        , Html.Attributes.value <| String.fromFloat valueAttributes.value
-        , Html.Attributes.class "input-range"
-        , onChange valueAttributes.change
-        ]
-        []
-
-
-singleView : SingleSlider msg -> Html msg
-singleView (SingleSlider slider) =
-    div []
-        [ sliderInputView slider.commonAttributes slider.valueAttributes
-        , sliderTrackView slider.commonAttributes
-        , sliderProgressView slider.commonAttributes slider.valueAttributes
-        , div
-            [ Html.Attributes.class "input-range-labels-container" ]
-            [ div
-                [ Html.Attributes.class "input-range-label" ]
-                [ Html.text <| slider.commonAttributes.minFormatter { value = slider.commonAttributes.min } ]
-            , div
-                [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text <| slider.valueAttributes.formatter { value = slider.valueAttributes.value, max = slider.commonAttributes.max } ]
-            , div
-                [ Html.Attributes.class "input-range-label" ]
-                [ Html.text <| slider.commonAttributes.maxFormatter { value = slider.commonAttributes.max } ]
-            ]
-        ]
-
-
-doubleView : DoubleSlider msg -> Html msg
-doubleView (DoubleSlider slider) =
-    div []
-        [ div [ Html.Attributes.class "input-range-container" ]
-            [ sliderInputView slider.commonAttributes slider.lowValueAttributes
-            , sliderInputView slider.commonAttributes slider.highValueAttributes
-            , sliderTrackView slider.commonAttributes
-            , sliderProgressView slider.commonAttributes slider.lowValueAttributes
-            ]
-        , div [ Html.Attributes.class "input-range-labels-container" ]
-            [ div
-                [ Html.Attributes.class "input-range-label" ]
-                [ Html.text (slider.commonAttributes.minFormatter { value = slider.commonAttributes.min }) ]
-            , div
-                [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text (formatCurrentRange (DoubleSlider slider)) ]
-            , div
-                [ Html.Attributes.class "input-range-label" ]
-                [ Html.text (slider.commonAttributes.maxFormatter { value = slider.commonAttributes.max }) ]
-            ]
-        ]
-
-
-formatCurrentRange : DoubleSlider msg -> String
-formatCurrentRange (DoubleSlider slider) =
-    slider.currentRangeFormatter
-        { lowValue = slider.lowValueAttributes.value
-        , highValue = slider.highValueAttributes.value
-        , min = slider.commonAttributes.min
-        , max = slider.commonAttributes.max
-        }
-
-
-sliderTrackView : CommonAttributes msg -> Html msg
-sliderTrackView commonAttributes =
-    div [ Html.Attributes.class "input-range__track", onClick (onOutsideRangeClick commonAttributes) ] []
-
-
-sliderProgressView : CommonAttributes msg -> ValueAttributes msg -> Html msg
-sliderProgressView commonAttributes valueAttributes =
     let
+        track =
+            [ Html.Attributes.class "input-range__track", onClick (onOutsideRangeClick commonAttributes) ]
+
         progressPercentages =
             calculateProgressPercentages commonAttributes valueAttributes
 
@@ -258,7 +184,36 @@ sliderProgressView commonAttributes valueAttributes =
             , onClick (onInsideRangeClick commonAttributes valueAttributes)
             ]
     in
-    div progressAttributes []
+    div [ Html.Attributes.class "input-range-container" ]
+        [ Html.input
+            [ Html.Attributes.type_ "range"
+            , Html.Attributes.min <| String.fromFloat commonAttributes.min
+            , Html.Attributes.max <| String.fromFloat commonAttributes.max
+            , Html.Attributes.step <| String.fromFloat commonAttributes.step
+            , Html.Attributes.value <| String.fromFloat valueAttributes.value
+            , Html.Attributes.class "input-range"
+            , onChange valueAttributes.change
+            ]
+            []
+        , div track []
+        , div progressAttributes []
+        ]
+
+
+sliderLabelView : CommonAttributes msg -> ValueAttributes msg -> Html msg
+sliderLabelView commonAttributes valueAttributes =
+    div
+        [ Html.Attributes.class "input-range-labels-container" ]
+        [ div
+            [ Html.Attributes.class "input-range-label" ]
+            [ Html.text <| commonAttributes.minFormatter { value = commonAttributes.min } ]
+        , div
+            [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+            [ Html.text <| valueAttributes.formatter { value = valueAttributes.value, max = commonAttributes.max } ]
+        , div
+            [ Html.Attributes.class "input-range-label" ]
+            [ Html.text <| commonAttributes.maxFormatter { value = commonAttributes.max } ]
+        ]
 
 
 
@@ -277,15 +232,6 @@ defaultValueFormatter values =
 
     else
         String.fromFloat values.value
-
-
-defaultCurrentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
-defaultCurrentRangeFormatter values =
-    if values.lowValue == values.min && values.highValue == values.max then
-        ""
-
-    else
-        String.join " " [ String.fromFloat values.lowValue, "-", String.fromFloat values.highValue ]
 
 
 initSingleSlider :
@@ -328,7 +274,6 @@ initDoubleSlider :
     , valueFormatter : { value : Float, max : Float } -> String
     , minFormatter : { value : Float } -> String
     , maxFormatter : { value : Float } -> String
-    , currentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
     }
     -> DoubleSlider msg
 initDoubleSlider attrs =
@@ -351,7 +296,6 @@ initDoubleSlider attrs =
             , change = attrs.onHighChange
             , formatter = attrs.valueFormatter
             }
-        , currentRangeFormatter = attrs.currentRangeFormatter
         }
 
 
@@ -363,45 +307,37 @@ singleUpdate value (SingleSlider ({ valueAttributes } as slider)) =
         }
 
 
-doubleUpdate : { lowValue : Maybe Float, highValue : Maybe Float } -> DoubleSlider msg -> DoubleSlider msg
-doubleUpdate values (DoubleSlider ({ lowValueAttributes, highValueAttributes } as slider)) =
-    case ( values.lowValue, values.highValue ) of
-        ( Nothing, Nothing ) ->
-            DoubleSlider slider
+doubleUpdate : Float -> Float -> DoubleSlider msg -> DoubleSlider msg
+doubleUpdate lowValue highValue (DoubleSlider ({ lowValueAttributes, highValueAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = slider.commonAttributes
+        , lowValueAttributes =
+            { lowValueAttributes
+                | value = lowValue
+            }
+        , highValueAttributes =
+            { highValueAttributes
+                | value = highValue
+            }
+        }
 
-        ( Just lowValue, Nothing ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Basics.min lowValue (slider.highValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , highValueAttributes =
-                    highValueAttributes
-                , currentRangeFormatter = slider.currentRangeFormatter
-                }
 
-        ( Nothing, Just highValue ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes = lowValueAttributes
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Basics.max highValue (slider.lowValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , currentRangeFormatter = slider.currentRangeFormatter
-                }
+singleView : SingleSlider msg -> Html msg
+singleView (SingleSlider slider) =
+    div []
+        [ sliderInputView slider.commonAttributes slider.valueAttributes
+        , sliderLabelView slider.commonAttributes slider.valueAttributes
+        ]
 
-        ( Just lowValue, Just highValue ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Basics.min lowValue (slider.highValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Basics.max highValue (slider.lowValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , currentRangeFormatter = slider.currentRangeFormatter
-                }
+
+doubleView : DoubleSlider msg -> Html msg
+doubleView (DoubleSlider slider) =
+    div []
+        [ sliderInputView slider.commonAttributes slider.lowValueAttributes
+        , sliderInputView slider.commonAttributes slider.highValueAttributes
+        , div
+            []
+            [ sliderLabelView slider.commonAttributes slider.lowValueAttributes
+            , sliderLabelView slider.commonAttributes slider.highValueAttributes
+            ]
+        ]
