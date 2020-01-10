@@ -1,125 +1,18 @@
-module SingleSlider exposing
-    ( Model, defaultModel, ProgressDirection(..)
-    , Msg(..), update, subscriptions
-    , view
-    )
-
-{-| A single slider built natively in Elm
-
-
-# Model
-
-@docs Model, defaultModel, ProgressDirection
-
-
-# Update
-
-@docs Msg, update, subscriptions
-
-
-# View
-
-@docs view
-
--}
+module SingleSlider exposing (SingleSlider, init, update, view)
 
 import DOM exposing (boundingClientRect)
-import Html exposing (Html, div, input)
+import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, targetValue)
-import Json.Decode exposing (map)
+import Html.Events exposing (..)
+import Json.Decode
+import RangeSlider
 
 
-{-| The base model for the slider
--}
-type alias Model =
-    { min : Float
-    , max : Float
-    , step : Float
-    , value : Float
-    , minFormatter : Float -> String
-    , maxFormatter : Float -> String
-    , currentValueFormatter : Float -> Float -> String
-    , disabled : Bool
-    , progressDirection : ProgressDirection
-    , reversed : Bool
-    }
-
-
-{-| The basic type accepted by the update
--}
-type Msg
-    = TrackClicked String
-    | OnInput String Bool
-    | OnChange String
-
-
-{-| Progress Bar direction (left or right)
--}
-type ProgressDirection
-    = ProgressLeft
-    | ProgressRight
-
-
-{-| Default model
--}
-defaultModel : Model
-defaultModel =
-    { min = 0
-    , max = 100
-    , step = 10
-    , value = 0
-    , minFormatter = String.fromFloat
-    , maxFormatter = String.fromFloat
-    , currentValueFormatter = defaultCurrentValueFormatter
-    , disabled = False
-    , progressDirection = ProgressLeft
-    , reversed = False
-    }
-
-
-{-| Default formatter for the current value
--}
-defaultCurrentValueFormatter : Float -> Float -> String
-defaultCurrentValueFormatter currentValue max =
-    if currentValue == max then
-        ""
-
-    else
-        String.fromFloat currentValue
-
-
-{-| takes a model and a message and applies it to create an updated model
--}
-update : Msg -> Model -> ( Model, Cmd Msg, Bool )
-update message model =
-    case message of
-        OnInput newValue shouldFetchModels ->
-            let
-                convertedValue =
-                    String.toFloat newValue |> Maybe.withDefault 0
-
-                newModel =
-                    { model | value = convertedValue }
-            in
-            ( newModel, Cmd.none, shouldFetchModels )
-
-        OnChange newValue ->
-            let
-                convertedValue =
-                    String.toFloat newValue |> Maybe.withDefault 0
-            in
-            ( { model | value = convertedValue }, Cmd.none, True )
-
-        TrackClicked newValue ->
-            let
-                convertedValue =
-                    snapValue (String.toFloat newValue |> Maybe.withDefault model.min) model
-
-                newModel =
-                    { model | value = convertedValue }
-            in
-            ( newModel, Cmd.none, True )
+type SingleSlider msg
+    = SingleSlider
+        { commonAttributes : RangeSlider.CommonAttributes
+        , valueAttributes : RangeSlider.ValueAttributes msg
+        }
 
 
 closestStep : Float -> Float -> Int
@@ -145,11 +38,11 @@ closestStep value step =
         roundedValue - remainder
 
 
-snapValue : Float -> Model -> Float
-snapValue value model =
+snapValue : Float -> SingleSlider msg -> Float
+snapValue value (SingleSlider slider) =
     let
         roundedStep =
-            round model.step
+            round slider.commonAttributes.step
 
         adjustedRoundedStep =
             if roundedStep > 0 then
@@ -162,12 +55,7 @@ snapValue value model =
             value / toFloat adjustedRoundedStep
 
         roundedValue =
-            case model.progressDirection of
-                ProgressLeft ->
-                    floor newValue
-
-                ProgressRight ->
-                    ceiling newValue
+            floor newValue
 
         nextValue =
             toFloat (roundedValue * adjustedRoundedStep)
@@ -175,185 +63,137 @@ snapValue value model =
     nextValue
 
 
-onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
-onOutsideRangeClick model =
+onOutsideRangeClick : SingleSlider msg -> Json.Decode.Decoder msg
+onOutsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
     let
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
                         clickedValue =
-                            if model.reversed then
-                                model.max - (((model.max - model.min) / rectangle.width) * mouseX)
-
-                            else
-                                (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+                            (((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min
 
                         newValue =
-                            closestStep clickedValue model.step
+                            closestStep clickedValue commonAttributes.step
                     in
-                    String.fromInt newValue
+                    toFloat newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
-    Json.Decode.map TrackClicked valueDecoder
+    Json.Decode.map slider.valueAttributes.change valueDecoder
 
 
-onInsideRangeClick : Model -> Json.Decode.Decoder Msg
-onInsideRangeClick model =
+onInsideRangeClick : SingleSlider msg -> Json.Decode.Decoder msg
+onInsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
     let
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
                         adjustedValue =
-                            clamp model.min model.max model.value
+                            clamp commonAttributes.min commonAttributes.max valueAttributes.value
 
                         newValue =
                             round <|
-                                case model.progressDirection of
-                                    ProgressLeft ->
-                                        (adjustedValue / rectangle.width) * mouseX
-
-                                    ProgressRight ->
-                                        if model.reversed then
-                                            adjustedValue - ((mouseX / rectangle.width) * (adjustedValue - model.min))
-
-                                        else
-                                            adjustedValue + ((mouseX / rectangle.width) * (model.max - adjustedValue))
+                                adjustedValue
+                                    - ((mouseX / rectangle.width) * (adjustedValue - commonAttributes.min))
 
                         adjustedNewValue =
-                            clamp model.min model.max <| toFloat newValue
+                            clamp commonAttributes.min commonAttributes.max <| toFloat newValue
                     in
-                    String.fromFloat adjustedNewValue
+                    adjustedNewValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
-    Json.Decode.map TrackClicked valueDecoder
+    Json.Decode.map valueAttributes.change valueDecoder
 
 
-onInput : Bool -> Json.Decode.Decoder Msg
-onInput shouldFetchModels =
-    Json.Decode.map2 OnInput
-        targetValue
-        (Json.Decode.succeed shouldFetchModels)
-
-
-onChange : Json.Decode.Decoder Msg
-onChange =
-    Json.Decode.map OnChange
-        targetValue
-
-
-{-| Displays the slider
--}
-view : Model -> Html Msg
-view model =
+progressView : SingleSlider msg -> Html msg
+progressView (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
     let
-        trackAttributes =
-            [ Html.Attributes.class "input-range__track" ]
+        progressRatio =
+            100 / (commonAttributes.max - commonAttributes.min)
 
-        trackAllAttributes =
-            case model.disabled of
-                False ->
-                    List.append trackAttributes [ Html.Events.on "click" (onOutsideRangeClick model) ]
+        value =
+            clamp commonAttributes.min commonAttributes.max valueAttributes.value
 
-                True ->
-                    trackAttributes
-
-        progressPercentages =
-            calculateProgressPercentages model
+        progress =
+            commonAttributes.max - value * progressRatio
 
         progressAttributes =
             [ Html.Attributes.class "input-range__progress"
-            , Html.Attributes.style "left" <| String.fromFloat progressPercentages.left ++ "%"
-            , Html.Attributes.style "right" <| String.fromFloat progressPercentages.right ++ "%"
+            , Html.Attributes.style "left" <| String.fromFloat 0.0 ++ "%"
+            , Html.Attributes.style "right" <| String.fromFloat progressRatio ++ "%"
+            , RangeSlider.onClick (onInsideRangeClick (SingleSlider slider))
             ]
-
-        progressAllAttributes =
-            case model.disabled of
-                False ->
-                    List.append progressAttributes [ Html.Events.on "click" (onInsideRangeClick model) ]
-
-                True ->
-                    progressAttributes
-
-        ( leftText, rightText ) =
-            if model.reversed then
-                ( model.maxFormatter model.max, model.minFormatter model.min )
-
-            else
-                ( model.minFormatter model.min, model.maxFormatter model.max )
     in
-    div []
-        [ div
-            [ Html.Attributes.class "input-range-container" ]
-            [ Html.input
-                [ Html.Attributes.type_ "range"
-                , Html.Attributes.min (String.fromFloat model.min)
-                , Html.Attributes.max (String.fromFloat model.max)
-                , Html.Attributes.value <| String.fromFloat model.value
-                , Html.Attributes.step (String.fromFloat model.step)
-                , Html.Attributes.class "input-range"
-                , Html.Attributes.disabled model.disabled
-                , Html.Events.on "change" onChange
-                , Html.Events.on "input" (onInput True)
-                , Html.Attributes.style "direction" <|
-                    if model.reversed then
-                        "rtl"
+    div progressAttributes []
 
-                    else
-                        "ltr"
-                ]
-                []
-            , div
-                trackAllAttributes
-                []
-            , div
-                progressAllAttributes
-                []
-            ]
+
+inputDecoder : Json.Decode.Decoder Float
+inputDecoder =
+    Json.Decode.map (\value -> String.toFloat value |> Maybe.withDefault 0)
+        Html.Events.targetValue
+
+
+
+-- API
+
+
+init :
+    { min : Float
+    , max : Float
+    , step : Float
+    , value : Float
+    , onChange : Float -> msg
+    , valueFormatter : { value : Float, max : Float } -> String
+    , minFormatter : { value : Float } -> String
+    , maxFormatter : { value : Float } -> String
+    }
+    -> SingleSlider msg
+init attrs =
+    SingleSlider
+        { commonAttributes =
+            { min = attrs.min
+            , max = attrs.max
+            , step = attrs.step
+            , minFormatter = attrs.minFormatter
+            , maxFormatter = attrs.maxFormatter
+            }
+        , valueAttributes =
+            { value = attrs.value
+            , change = attrs.onChange
+            , formatter = attrs.valueFormatter
+            }
+        }
+
+
+update : Float -> SingleSlider msg -> SingleSlider msg
+update value (SingleSlider ({ valueAttributes } as slider)) =
+    SingleSlider
+        { valueAttributes = { valueAttributes | value = value }
+        , commonAttributes = slider.commonAttributes
+        }
+
+
+view : SingleSlider msg -> Html msg
+view (SingleSlider slider) =
+    div []
+        [ RangeSlider.sliderInputView slider.commonAttributes slider.valueAttributes inputDecoder
+        , RangeSlider.sliderTrackView (onOutsideRangeClick (SingleSlider slider))
+        , progressView (SingleSlider slider)
         , div
             [ Html.Attributes.class "input-range-labels-container" ]
-            [ div [ Html.Attributes.class "input-range-label" ] [ Html.text leftText ]
-            , div [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text (model.currentValueFormatter model.value model.max) ]
-            , div [ Html.Attributes.class "input-range-label" ] [ Html.text rightText ]
+            [ div
+                [ Html.Attributes.class "input-range-label" ]
+                [ Html.text <| slider.commonAttributes.minFormatter { value = slider.commonAttributes.min } ]
+            , div
+                [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                [ Html.text <| slider.valueAttributes.formatter { value = slider.valueAttributes.value, max = slider.commonAttributes.max } ]
+            , div
+                [ Html.Attributes.class "input-range-label" ]
+                [ Html.text <| slider.commonAttributes.maxFormatter { value = slider.commonAttributes.max } ]
             ]
         ]
-
-
-{-| Returns the percentage adjusted min, max values for the range (actual min - actual max)
--}
-calculateProgressPercentages : Model -> { left : Float, right : Float }
-calculateProgressPercentages model =
-    let
-        progressRatio =
-            100 / (model.max - model.min)
-
-        value =
-            clamp model.min model.max model.value
-    in
-    case model.progressDirection of
-        ProgressRight ->
-            if model.reversed then
-                { left = 100 - (value - model.min) * progressRatio, right = 0.0 }
-
-            else
-                { left = (value - model.min) * progressRatio, right = 0.0 }
-
-        ProgressLeft ->
-            { left = 0.0, right = (model.max - value) * progressRatio }
-
-
-
--- Subscriptions ---------------------------------------------------------------
-
-
-{-| Returns the subscriptions necessary to run
--}
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none

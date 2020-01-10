@@ -1,9 +1,11 @@
 module Main exposing (main)
 
 import Browser
+import DoubleSlider as DoubleSlider exposing (..)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-import RangeSlider exposing (..)
+import RangeSlider as RangeSlider exposing (..)
+import SingleSlider exposing (..)
 
 
 main : Program Flags Model Msg
@@ -16,8 +18,8 @@ main =
 
 
 type alias Model =
-    { singleSlider : RangeSlider.SingleSlider Msg
-    , doubleSlider : RangeSlider.DoubleSlider Msg
+    { singleSlider : SingleSlider.SingleSlider Msg
+    , doubleSlider : DoubleSlider.DoubleSlider Msg
     }
 
 
@@ -30,18 +32,18 @@ init flags =
     let
         model =
             { singleSlider =
-                RangeSlider.initSingleSlider
+                SingleSlider.init
                     { min = 0
                     , max = 1000
                     , value = 500
                     , step = 50
-                    , onChange = handleSliderChange
+                    , onChange = handleSingleSliderChange
                     , valueFormatter = RangeSlider.defaultValueFormatter
                     , minFormatter = RangeSlider.defaultFormatter
                     , maxFormatter = RangeSlider.defaultFormatter
                     }
             , doubleSlider =
-                RangeSlider.initDoubleSlider
+                DoubleSlider.init
                     { min = 0
                     , max = 1000
                     , lowValue = 500
@@ -52,7 +54,8 @@ init flags =
                     , valueFormatter = RangeSlider.defaultValueFormatter
                     , minFormatter = RangeSlider.defaultFormatter
                     , maxFormatter = RangeSlider.defaultFormatter
-                    , currentRangeFormatter = RangeSlider.defaultCurrentRangeFormatter
+                    , currentRangeFormatter = DoubleSlider.defaultCurrentRangeFormatter
+                    , overlapThreshold = 1
                     }
             }
     in
@@ -67,7 +70,7 @@ type Msg
     = NoOp
     | DoubleSliderLowChange Float
     | DoubleSliderHighChange Float
-    | SliderChange Float
+    | SingleSliderChange Float
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -79,7 +82,7 @@ update msg model =
         DoubleSliderLowChange str ->
             let
                 newSlider =
-                    RangeSlider.doubleUpdate
+                    DoubleSlider.update
                         { lowValue = Just str, highValue = Nothing }
                         model.doubleSlider
             in
@@ -88,18 +91,16 @@ update msg model =
         DoubleSliderHighChange str ->
             let
                 newSlider =
-                    RangeSlider.doubleUpdate
+                    DoubleSlider.update
                         { lowValue = Nothing, highValue = Just str }
                         model.doubleSlider
             in
             ( { model | doubleSlider = newSlider }, Cmd.none )
 
-        SliderChange str ->
+        SingleSliderChange str ->
             let
                 newSlider =
-                    RangeSlider.singleUpdate
-                        str
-                        model.singleSlider
+                    SingleSlider.update str model.singleSlider
             in
             ( { model | singleSlider = newSlider }, Cmd.none )
 
@@ -108,9 +109,9 @@ update msg model =
 -- VIEW
 
 
-handleSliderChange : Float -> Msg
-handleSliderChange str =
-    SliderChange str
+handleSingleSliderChange : Float -> Msg
+handleSingleSliderChange str =
+    SingleSliderChange str
 
 
 handleDoubleSliderLowChange : Float -> Msg
@@ -126,7 +127,8 @@ handleDoubleSliderHighChange str =
 view : Model -> Html Msg
 view model =
     div []
-        [ RangeSlider.doubleView model.doubleSlider
+        [ div [] [ DoubleSlider.view model.doubleSlider ]
+        , div [] [ SingleSlider.view model.singleSlider ]
         ]
 
 
