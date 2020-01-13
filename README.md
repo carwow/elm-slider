@@ -217,7 +217,7 @@ We recommend to start with the following styles and override them according to t
 
 Both sliders have a width set to 100% of the parent element. Therefore, in order to set a fixed width, we recommend to set it on the parent element and not override the width of the range slider. This is to ensure the flexibility of the component.
 
-```
+```css
 .input-range-container {
   display: inline-flex;
   align-items: center;
