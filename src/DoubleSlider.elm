@@ -1,156 +1,59 @@
-module DoubleSlider exposing
-    ( Model, defaultModel
-    , Msg, update, subscriptions
-    , view, fallbackView, formatCurrentRange
-    )
+module DoubleSlider exposing (DoubleSlider, init, updateHighValue, updateLowValue, view)
 
-{-| A single slider built natively in Elm
-
-
-# Model
-
-@docs Model, defaultModel
-
-
-# Update
-
-@docs Msg, update, subscriptions
-
-
-# View
-
-@docs view, fallbackView, formatCurrentRange
-
--}
-
-import Browser
 import DOM exposing (boundingClientRect)
-import Html exposing (Html, div, input)
+import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (on, targetValue)
-import Json.Decode exposing (map)
+import Html.Events
+import Json.Decode
+import RangeSlider
 
 
-{-| The base model for the slider
--}
-type alias Model =
-    { min : Float
-    , max : Float
-    , step : Int
-    , lowValue : Float
-    , highValue : Float
-    , overlapThreshold : Float
-    , minFormatter : Float -> String
-    , maxFormatter : Float -> String
-    , currentRangeFormatter : Float -> Float -> Float -> Float -> String
-    }
+type DoubleSlider msg
+    = DoubleSlider
+        { commonAttributes : RangeSlider.CommonAttributes
+        , lowValueAttributes : RangeSlider.ValueAttributes msg
+        , highValueAttributes : RangeSlider.ValueAttributes msg
+        , currentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
+        , overlapThreshold : Float
+        }
 
 
-type SliderValueType
-    = LowValue
-    | HighValue
-    | None
+type Thumb
+    = High
+    | Low
 
 
-{-| The basic type accepted by the update
--}
-type Msg
-    = TrackClicked SliderValueType String
-    | RangeChanged SliderValueType String Bool
+changeMsg : DoubleSlider msg -> Thumb -> (Float -> msg)
+changeMsg (DoubleSlider slider) thumb =
+    case thumb of
+        Low ->
+            slider.lowValueAttributes.change
+
+        High ->
+            slider.highValueAttributes.change
 
 
-{-| Returns a default range slider
--}
-defaultModel : Model
-defaultModel =
-    { min = 0
-    , max = 100
-    , step = 10
-    , lowValue = 0
-    , highValue = 100
-    , overlapThreshold = 1
-    , minFormatter = String.fromFloat
-    , maxFormatter = String.fromFloat
-    , currentRangeFormatter = defaultCurrentRangeFormatter
-    }
-
-
-defaultCurrentRangeFormatter : Float -> Float -> Float -> Float -> String
-defaultCurrentRangeFormatter lowValue highValue min max =
-    String.join " " [ String.fromFloat lowValue, "-", String.fromFloat highValue ]
-
-
-{-| takes a model and a message and applies it to create an updated model
--}
-update : Msg -> Model -> ( Model, Cmd Msg, Bool )
-update message model =
-    case message of
-        RangeChanged valueType newValue shouldFetchModels ->
-            let
-                convertedValue =
-                    String.toFloat newValue |> Maybe.withDefault 0
-
-                newModel =
-                    case valueType of
-                        LowValue ->
-                            let
-                                newLowValue =
-                                    Basics.min convertedValue (model.highValue - (toFloat model.step * model.overlapThreshold))
-                            in
-                            { model | lowValue = newLowValue }
-
-                        HighValue ->
-                            let
-                                newHighValue =
-                                    Basics.max convertedValue (model.lowValue + (toFloat model.step * model.overlapThreshold))
-                            in
-                            { model | highValue = newHighValue }
-
-                        None ->
-                            model
-            in
-            ( newModel, Cmd.none, shouldFetchModels )
-
-        TrackClicked valueType newValue ->
-            let
-                convertedValue =
-                    snapValue (String.toFloat newValue |> Maybe.withDefault 0) model.step
-
-                newModel =
-                    case valueType of
-                        LowValue ->
-                            { model | lowValue = convertedValue }
-
-                        HighValue ->
-                            { model | highValue = convertedValue }
-
-                        None ->
-                            model
-            in
-            ( newModel, Cmd.none, True )
-
-
-snapValue : Float -> Int -> Float
+snapValue : Float -> Float -> Float
 snapValue value step =
-    toFloat ((round value // step) * step)
+    (value / step) * step
 
 
-onOutsideRangeClick : Model -> Json.Decode.Decoder Msg
-onOutsideRangeClick model =
+onOutsideRangeClick : DoubleSlider msg -> Json.Decode.Decoder msg
+onOutsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes, highValueAttributes } as slider)) =
     let
         valueTypeDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
                         newValue =
-                            snapValue ((model.max / rectangle.width) * mouseX) model.step
+                            snapValue ((commonAttributes.max / rectangle.width) * mouseX) commonAttributes.step
 
                         valueType =
-                            if newValue < model.lowValue then
-                                LowValue
+                            if newValue < lowValueAttributes.value then
+                                Low
 
                             else
-                                HighValue
+                                High
                     in
                     valueType
                 )
@@ -162,18 +65,18 @@ onOutsideRangeClick model =
                 (\rectangle mouseX ->
                     let
                         newValue =
-                            (((model.max - model.min) / rectangle.width) * mouseX) + model.min
+                            (((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min
                     in
-                    String.fromInt (round newValue)
+                    newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
-    Json.Decode.map2 TrackClicked valueTypeDecoder valueDecoder
+    Json.Decode.map2 (changeMsg (DoubleSlider slider)) valueTypeDecoder valueDecoder
 
 
-onInsideRangeClick : Model -> Json.Decode.Decoder Msg
-onInsideRangeClick model =
+onInsideRangeClick : DoubleSlider msg -> Json.Decode.Decoder msg
+onInsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes, highValueAttributes } as slider)) =
     let
         valueTypeDecoder =
             Json.Decode.map2
@@ -184,10 +87,10 @@ onInsideRangeClick model =
 
                         valueType =
                             if mouseX < centerThreshold then
-                                LowValue
+                                Low
 
                             else
-                                HighValue
+                                High
                     in
                     valueType
                 )
@@ -199,114 +102,228 @@ onInsideRangeClick model =
                 (\rectangle mouseX ->
                     let
                         newValue =
-                            snapValue ((((model.highValue - model.lowValue) / rectangle.width) * mouseX) + model.lowValue) model.step
+                            snapValue ((((highValueAttributes.value - lowValueAttributes.value) / rectangle.width) * mouseX) + lowValueAttributes.value) commonAttributes.step
                     in
-                    String.fromInt (round newValue)
+                    newValue
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
     in
-    Json.Decode.map2 TrackClicked valueTypeDecoder valueDecoder
+    Json.Decode.map2 (changeMsg (DoubleSlider slider)) valueTypeDecoder valueDecoder
 
 
-onRangeChange : SliderValueType -> Bool -> Json.Decode.Decoder Msg
-onRangeChange valueType shouldFetchModels =
-    Json.Decode.map3
-        RangeChanged
-        (Json.Decode.succeed valueType)
-        targetValue
-        (Json.Decode.succeed shouldFetchModels)
+formatCurrentRange : DoubleSlider msg -> String
+formatCurrentRange (DoubleSlider slider) =
+    slider.currentRangeFormatter
+        { lowValue = slider.lowValueAttributes.value
+        , highValue = slider.highValueAttributes.value
+        , min = slider.commonAttributes.min
+        , max = slider.commonAttributes.max
+        }
 
 
-{-| Displays the slider
--}
-view : Model -> Html Msg
-view model =
+progressView : DoubleSlider msg -> Html msg
+progressView (DoubleSlider ({ commonAttributes, lowValueAttributes, highValueAttributes } as slider)) =
     let
         lowValue =
-            round model.lowValue
+            lowValueAttributes.value
 
         highValue =
-            round model.highValue
+            highValueAttributes.value
 
         progressRatio =
-            100 / (model.max - model.min)
+            100 / (commonAttributes.max - commonAttributes.min)
 
         progressLow =
-            String.fromFloat ((model.lowValue - model.min) * progressRatio) ++ "%"
+            String.fromFloat ((lowValue - commonAttributes.min) * progressRatio) ++ "%"
 
         progressHigh =
-            String.fromFloat ((model.max - model.highValue) * progressRatio) ++ "%"
+            String.fromFloat ((commonAttributes.max - highValue) * progressRatio) ++ "%"
     in
-    div []
-        [ div
-            [ Html.Attributes.class "input-range-container" ]
-            [ Html.input
-                [ Html.Attributes.type_ "range"
-                , Html.Attributes.min (String.fromFloat model.min)
-                , Html.Attributes.max (String.fromFloat model.max)
-                , Html.Attributes.value <| String.fromFloat model.lowValue
-                , Html.Attributes.step (String.fromInt model.step)
-                , Html.Attributes.class "input-range input-range--first"
-                , Html.Events.on "change" (onRangeChange LowValue True)
-                , Html.Events.on "input" (onRangeChange LowValue False)
-                ]
-                []
-            , Html.input
-                [ Html.Attributes.type_ "range"
-                , Html.Attributes.min (String.fromFloat model.min)
-                , Html.Attributes.max (String.fromFloat model.max)
-                , Html.Attributes.value <| String.fromFloat model.highValue
-                , Html.Attributes.step (String.fromInt model.step)
-                , Html.Attributes.class "input-range input-range--second"
-                , Html.Events.on "change" (onRangeChange HighValue True)
-                , Html.Events.on "input" (onRangeChange HighValue False)
-                ]
-                []
-            , div
-                [ Html.Attributes.class "input-range__track"
-                , Html.Events.on "click" (onOutsideRangeClick model)
-                ]
-                []
-            , div
-                [ Html.Attributes.class "input-range__progress"
-                , Html.Attributes.style "left" progressLow
-                , Html.Attributes.style "right" progressHigh
-                , Html.Events.on "click" (onInsideRangeClick model)
-                ]
-                []
-            ]
-        , div
-            [ Html.Attributes.class "input-range-labels-container" ]
-            [ div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.minFormatter model.min) ]
-            , div
-                [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text (formatCurrentRange model) ]
-            , div [ Html.Attributes.class "input-range-label" ] [ Html.text (model.maxFormatter model.max) ]
-            ]
+    div
+        [ Html.Attributes.class "input-range__progress"
+        , Html.Attributes.style "left" progressLow
+        , Html.Attributes.style "right" progressHigh
+        , Html.Events.on "click" (onInsideRangeClick (DoubleSlider slider))
         ]
+        []
 
 
-{-| DEPRECATED: Displays the slider
--}
-fallbackView : Model -> Html Msg
-fallbackView model =
-    view model
+inputDecoder : DoubleSlider msg -> Thumb -> Json.Decode.Decoder Float
+inputDecoder (DoubleSlider slider) thumb =
+    Json.Decode.map (\value -> String.toFloat value |> Maybe.withDefault 0 |> convertValue (DoubleSlider slider) thumb)
+        Html.Events.targetValue
 
 
-{-| Renders the current values using the formatter
--}
-formatCurrentRange : Model -> String
-formatCurrentRange model =
-    if model.lowValue == model.min && model.highValue == model.max then
+convertValue : DoubleSlider msg -> Thumb -> Float -> Float
+convertValue (DoubleSlider slider) thumb value =
+    case thumb of
+        Low ->
+            Basics.min value (slider.highValueAttributes.value - (slider.commonAttributes.step * slider.overlapThreshold))
+
+        High ->
+            Basics.max value (slider.lowValueAttributes.value + (slider.commonAttributes.step * slider.overlapThreshold))
+
+
+defaultCurrentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
+defaultCurrentRangeFormatter values =
+    if values.lowValue == values.min && values.highValue == values.max then
         ""
 
     else
-        model.currentRangeFormatter model.lowValue model.highValue model.min model.max
+        String.join " " [ String.fromFloat values.lowValue, "-", String.fromFloat values.highValue ]
 
 
-{-| Returns the subscriptions necessary to run
--}
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
+
+-- API
+
+
+init :
+    { min : Float
+    , max : Float
+    , step : Float
+    , lowValue : Float
+    , highValue : Float
+    , onLowChange : Float -> msg
+    , onHighChange : Float -> msg
+    }
+    -> DoubleSlider msg
+init attrs =
+    DoubleSlider
+        { commonAttributes =
+            { min = attrs.min
+            , max = attrs.max
+            , step = attrs.step
+            , minFormatter = RangeSlider.defaultLabelFormatter
+            , maxFormatter = RangeSlider.defaultLabelFormatter
+            }
+        , lowValueAttributes =
+            { value = attrs.lowValue
+            , change = attrs.onLowChange
+            , formatter = RangeSlider.defaultValueFormatter
+            }
+        , highValueAttributes =
+            { value = attrs.highValue
+            , change = attrs.onHighChange
+            , formatter = RangeSlider.defaultValueFormatter
+            }
+        , currentRangeFormatter = defaultCurrentRangeFormatter
+        , overlapThreshold = 1.0
+        }
+
+
+withMinFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = slider.lowValueAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        , commonAttributes = { commonAttributes | minFormatter = formatter }
+        }
+
+
+withMaxFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = slider.lowValueAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        , commonAttributes = { commonAttributes | maxFormatter = formatter }
+        }
+
+
+withLowValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
+withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = { lowValueAttributes | formatter = formatter }
+        , commonAttributes = slider.commonAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+withHighValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
+withHighValueFormatter formatter (DoubleSlider ({ highValueAttributes } as slider)) =
+    DoubleSlider
+        { highValueAttributes = { highValueAttributes | formatter = formatter }
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+withOverlapThreshold : Float -> DoubleSlider msg -> DoubleSlider msg
+withOverlapThreshold overlapThreshold (DoubleSlider slider) =
+    DoubleSlider
+        { highValueAttributes = slider.highValueAttributes
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = overlapThreshold
+        }
+
+
+withCurrentRangeFormatter : ({ lowValue : Float, highValue : Float, min : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withCurrentRangeFormatter currentRangeFormatter (DoubleSlider slider) =
+    DoubleSlider
+        { highValueAttributes = slider.highValueAttributes
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+updateLowValue : Float -> DoubleSlider msg -> DoubleSlider msg
+updateLowValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = slider.commonAttributes
+        , lowValueAttributes =
+            { lowValueAttributes
+                | value = Basics.min value (slider.highValueAttributes.value - commonAttributes.step)
+            }
+        , highValueAttributes = highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+updateHighValue : Float -> DoubleSlider msg -> DoubleSlider msg
+updateHighValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = commonAttributes
+        , lowValueAttributes = lowValueAttributes
+        , highValueAttributes =
+            { highValueAttributes
+                | value = Basics.max value (lowValueAttributes.value - commonAttributes.step)
+            }
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+view : DoubleSlider msg -> Html msg
+view (DoubleSlider slider) =
+    div []
+        [ div [ Html.Attributes.class "input-range-container" ]
+            [ RangeSlider.sliderInputView slider.commonAttributes slider.lowValueAttributes (inputDecoder (DoubleSlider slider) Low)
+            , RangeSlider.sliderInputView slider.commonAttributes slider.highValueAttributes (inputDecoder (DoubleSlider slider) High)
+            , RangeSlider.sliderTrackView (onOutsideRangeClick (DoubleSlider slider))
+            , progressView (DoubleSlider slider)
+            ]
+        , div [ Html.Attributes.class "input-range-labels-container" ]
+            [ div
+                [ Html.Attributes.class "input-range-label" ]
+                [ Html.text (slider.commonAttributes.minFormatter slider.commonAttributes.min) ]
+            , div
+                [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
+                [ Html.text (formatCurrentRange (DoubleSlider slider)) ]
+            , div
+                [ Html.Attributes.class "input-range-label" ]
+                [ Html.text (slider.commonAttributes.maxFormatter slider.commonAttributes.max) ]
+            ]
+        ]
