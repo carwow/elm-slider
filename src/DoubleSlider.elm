@@ -1,4 +1,4 @@
-module DoubleSlider exposing (DoubleSlider, defaultCurrentRangeFormatter, init, updateHighValue, updateLowValue, view)
+module DoubleSlider exposing (DoubleSlider, init, updateHighValue, updateLowValue, view)
 
 import DOM exposing (boundingClientRect)
 import Html exposing (..)
@@ -165,10 +165,6 @@ convertValue (DoubleSlider slider) thumb value =
             Basics.max value (slider.lowValueAttributes.value + (slider.commonAttributes.step * slider.overlapThreshold))
 
 
-
--- API
-
-
 defaultCurrentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
 defaultCurrentRangeFormatter values =
     if values.lowValue == values.min && values.highValue == values.max then
@@ -176,6 +172,10 @@ defaultCurrentRangeFormatter values =
 
     else
         String.join " " [ String.fromFloat values.lowValue, "-", String.fromFloat values.highValue ]
+
+
+
+-- API
 
 
 init :
