@@ -1,4 +1,4 @@
-module DoubleSlider exposing (DoubleSlider, defaultCurrentRangeFormatter, init, update, view)
+module DoubleSlider exposing (DoubleSlider, defaultCurrentRangeFormatter, init, updateHighValue, updateLowValue, view)
 
 import DOM exposing (boundingClientRect)
 import Html exposing (..)
@@ -186,11 +186,6 @@ init :
     , highValue : Float
     , onLowChange : Float -> msg
     , onHighChange : Float -> msg
-    , valueFormatter : { value : Float, max : Float } -> String
-    , minFormatter : { value : Float } -> String
-    , maxFormatter : { value : Float } -> String
-    , currentRangeFormatter : { lowValue : Float, highValue : Float, min : Float, max : Float } -> String
-    , overlapThreshold : Float
     }
     -> DoubleSlider msg
 init attrs =
@@ -199,69 +194,116 @@ init attrs =
             { min = attrs.min
             , max = attrs.max
             , step = attrs.step
-            , minFormatter = attrs.minFormatter
-            , maxFormatter = attrs.maxFormatter
+            , minFormatter = RangeSlider.defaultLabelFormatter
+            , maxFormatter = RangeSlider.defaultLabelFormatter
             }
         , lowValueAttributes =
             { value = attrs.lowValue
             , change = attrs.onLowChange
-            , formatter = attrs.valueFormatter
+            , formatter = RangeSlider.defaultValueFormatter
             }
         , highValueAttributes =
             { value = attrs.highValue
             , change = attrs.onHighChange
-            , formatter = attrs.valueFormatter
+            , formatter = RangeSlider.defaultValueFormatter
             }
-        , currentRangeFormatter = attrs.currentRangeFormatter
-        , overlapThreshold = attrs.overlapThreshold
+        , currentRangeFormatter = defaultCurrentRangeFormatter
+        , overlapThreshold = 1.0
         }
 
 
-update : { lowValue : Maybe Float, highValue : Maybe Float } -> DoubleSlider msg -> DoubleSlider msg
-update values (DoubleSlider ({ lowValueAttributes, highValueAttributes } as slider)) =
-    case ( values.lowValue, values.highValue ) of
-        ( Nothing, Nothing ) ->
-            DoubleSlider slider
+withMinFormatter : ({ value : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = slider.lowValueAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        , commonAttributes = { commonAttributes | minFormatter = formatter }
+        }
 
-        ( Just lowValue, Nothing ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Basics.min lowValue (slider.highValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , highValueAttributes =
-                    highValueAttributes
-                , currentRangeFormatter = slider.currentRangeFormatter
-                , overlapThreshold = slider.overlapThreshold
-                }
 
-        ( Nothing, Just highValue ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes = lowValueAttributes
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Basics.max highValue (slider.lowValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , currentRangeFormatter = slider.currentRangeFormatter
-                , overlapThreshold = slider.overlapThreshold
-                }
+withMaxFormatter : ({ value : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = slider.lowValueAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        , commonAttributes = { commonAttributes | maxFormatter = formatter }
+        }
 
-        ( Just lowValue, Just highValue ) ->
-            DoubleSlider
-                { commonAttributes = slider.commonAttributes
-                , lowValueAttributes =
-                    { lowValueAttributes
-                        | value = Basics.min lowValue (slider.highValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , highValueAttributes =
-                    { highValueAttributes
-                        | value = Basics.max highValue (slider.lowValueAttributes.value - slider.commonAttributes.step)
-                    }
-                , currentRangeFormatter = slider.currentRangeFormatter
-                , overlapThreshold = slider.overlapThreshold
-                }
+
+withLowValueFormatter : ({ value : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)) =
+    DoubleSlider
+        { lowValueAttributes = { lowValueAttributes | formatter = formatter }
+        , commonAttributes = slider.commonAttributes
+        , highValueAttributes = slider.highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+withHighValueFormatter : ({ value : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withHighValueFormatter formatter (DoubleSlider ({ highValueAttributes } as slider)) =
+    DoubleSlider
+        { highValueAttributes = { highValueAttributes | formatter = formatter }
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+withOverlapThreshold : Float -> DoubleSlider msg -> DoubleSlider msg
+withOverlapThreshold overlapThreshold (DoubleSlider slider) =
+    DoubleSlider
+        { highValueAttributes = slider.highValueAttributes
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = overlapThreshold
+        }
+
+
+withCurrentRangeFormatter : ({ lowValue : Float, highValue : Float, min : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withCurrentRangeFormatter currentRangeFormatter (DoubleSlider slider) =
+    DoubleSlider
+        { highValueAttributes = slider.highValueAttributes
+        , commonAttributes = slider.commonAttributes
+        , lowValueAttributes = slider.lowValueAttributes
+        , currentRangeFormatter = currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+updateLowValue : Float -> DoubleSlider msg -> DoubleSlider msg
+updateLowValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = slider.commonAttributes
+        , lowValueAttributes =
+            { lowValueAttributes
+                | value = Basics.min value (slider.highValueAttributes.value - commonAttributes.step)
+            }
+        , highValueAttributes = highValueAttributes
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
+
+
+updateHighValue : Float -> DoubleSlider msg -> DoubleSlider msg
+updateHighValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
+    DoubleSlider
+        { commonAttributes = commonAttributes
+        , lowValueAttributes = lowValueAttributes
+        , highValueAttributes =
+            { highValueAttributes
+                | value = Basics.max value (lowValueAttributes.value - commonAttributes.step)
+            }
+        , currentRangeFormatter = slider.currentRangeFormatter
+        , overlapThreshold = slider.overlapThreshold
+        }
 
 
 view : DoubleSlider msg -> Html msg

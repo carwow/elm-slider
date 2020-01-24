@@ -1,4 +1,4 @@
-module RangeSlider exposing (CommonAttributes, ValueAttributes, defaultFormatter, defaultValueFormatter, onClick, sliderInputView, sliderTrackView)
+module RangeSlider exposing (CommonAttributes, ValueAttributes, defaultLabelFormatter, defaultValueFormatter, onClick, sliderInputView, sliderTrackView)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -51,8 +51,8 @@ onClick decoder =
     Html.Events.on "click" decoder
 
 
-defaultFormatter : { value : Float } -> String
-defaultFormatter value =
+defaultLabelFormatter : { value : Float } -> String
+defaultLabelFormatter value =
     String.fromFloat value.value
 
 

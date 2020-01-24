@@ -148,9 +148,6 @@ init :
     , step : Float
     , value : Float
     , onChange : Float -> msg
-    , valueFormatter : { value : Float, max : Float } -> String
-    , minFormatter : { value : Float } -> String
-    , maxFormatter : { value : Float } -> String
     }
     -> SingleSlider msg
 init attrs =
@@ -159,14 +156,38 @@ init attrs =
             { min = attrs.min
             , max = attrs.max
             , step = attrs.step
-            , minFormatter = attrs.minFormatter
-            , maxFormatter = attrs.maxFormatter
+            , minFormatter = RangeSlider.defaultLabelFormatter
+            , maxFormatter = RangeSlider.defaultLabelFormatter
             }
         , valueAttributes =
             { value = attrs.value
             , change = attrs.onChange
-            , formatter = attrs.valueFormatter
+            , formatter = RangeSlider.defaultValueFormatter
             }
+        }
+
+
+withMinFormatter : ({ value : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withMinFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
+    SingleSlider
+        { valueAttributes = slider.valueAttributes
+        , commonAttributes = { commonAttributes | minFormatter = formatter }
+        }
+
+
+withMaxFormatter : ({ value : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withMaxFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
+    SingleSlider
+        { valueAttributes = slider.valueAttributes
+        , commonAttributes = { commonAttributes | maxFormatter = formatter }
+        }
+
+
+withValueFormatter : ({ value : Float, max : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withValueFormatter formatter (SingleSlider ({ valueAttributes } as slider)) =
+    SingleSlider
+        { valueAttributes = { valueAttributes | formatter = formatter }
+        , commonAttributes = slider.commonAttributes
         }
 
 
