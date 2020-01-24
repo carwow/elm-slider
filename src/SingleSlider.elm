@@ -1,5 +1,11 @@
 module SingleSlider exposing (SingleSlider, init, update, view, withMaxFormatter, withMinFormatter, withValueFormatter)
 
+{-| A slider component, with one track thumb.
+
+@docs SingleSlider, init, update, view, withMaxFormatter, withMinFormatter, withValueFormatter
+
+-}
+
 import DOM exposing (boundingClientRect)
 import Html exposing (..)
 import Html.Attributes exposing (..)

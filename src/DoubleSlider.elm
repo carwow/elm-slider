@@ -1,4 +1,10 @@
-module DoubleSlider exposing (DoubleSlider, init, updateHighValue, updateLowValue, view)
+module DoubleSlider exposing (DoubleSlider, init, updateHighValue, updateLowValue, view, withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold)
+
+{-| A slider component, with two track thumbs.
+
+@docs DoubleSlider, init, updateHighValue, updateLowValue, view, withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
+
+-}
 
 import DOM exposing (boundingClientRect)
 import Html exposing (..)
