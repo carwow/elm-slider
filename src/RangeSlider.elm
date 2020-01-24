@@ -9,7 +9,7 @@ import Json.Decode exposing (..)
 type alias ValueAttributes msg =
     { change : Float -> msg
     , value : Float
-    , formatter : { value : Float, max : Float } -> String
+    , formatter : Float -> Float -> String
     }
 
 
@@ -17,8 +17,8 @@ type alias CommonAttributes =
     { max : Float
     , min : Float
     , step : Float
-    , minFormatter : { value : Float } -> String
-    , maxFormatter : { value : Float } -> String
+    , minFormatter : Float -> String
+    , maxFormatter : Float -> String
     }
 
 
@@ -51,15 +51,15 @@ onClick decoder =
     Html.Events.on "click" decoder
 
 
-defaultLabelFormatter : { value : Float } -> String
+defaultLabelFormatter : Float -> String
 defaultLabelFormatter value =
-    String.fromFloat value.value
+    String.fromFloat value
 
 
-defaultValueFormatter : { value : Float, max : Float } -> String
-defaultValueFormatter values =
-    if values.value == values.max then
+defaultValueFormatter : Float -> Float -> String
+defaultValueFormatter value max =
+    if value == max then
         ""
 
     else
-        String.fromFloat values.value
+        String.fromFloat value

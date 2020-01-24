@@ -30,6 +30,9 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init flags =
     let
+        minFormatter =
+            \value -> String.fromFloat value
+
         model =
             { singleSlider =
                 SingleSlider.init
@@ -38,10 +41,8 @@ init flags =
                     , value = 500
                     , step = 50
                     , onChange = handleSingleSliderChange
-                    , valueFormatter = RangeSlider.defaultValueFormatter
-                    , minFormatter = RangeSlider.defaultFormatter
-                    , maxFormatter = RangeSlider.defaultFormatter
                     }
+                    |> SingleSlider.withMinFormatter minFormatter
             , doubleSlider =
                 DoubleSlider.init
                     { min = 0
@@ -51,11 +52,6 @@ init flags =
                     , step = 50
                     , onLowChange = handleDoubleSliderLowChange
                     , onHighChange = handleDoubleSliderHighChange
-                    , valueFormatter = RangeSlider.defaultValueFormatter
-                    , minFormatter = RangeSlider.defaultFormatter
-                    , maxFormatter = RangeSlider.defaultFormatter
-                    , currentRangeFormatter = DoubleSlider.defaultCurrentRangeFormatter
-                    , overlapThreshold = 1
                     }
             }
     in
@@ -82,18 +78,14 @@ update msg model =
         DoubleSliderLowChange str ->
             let
                 newSlider =
-                    DoubleSlider.update
-                        { lowValue = Just str, highValue = Nothing }
-                        model.doubleSlider
+                    DoubleSlider.updateLowValue str model.doubleSlider
             in
             ( { model | doubleSlider = newSlider }, Cmd.none )
 
         DoubleSliderHighChange str ->
             let
                 newSlider =
-                    DoubleSlider.update
-                        { lowValue = Nothing, highValue = Just str }
-                        model.doubleSlider
+                    DoubleSlider.updateHighValue str model.doubleSlider
             in
             ( { model | doubleSlider = newSlider }, Cmd.none )
 

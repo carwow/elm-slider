@@ -212,7 +212,7 @@ init attrs =
         }
 
 
-withMinFormatter : ({ value : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMinFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
     DoubleSlider
         { lowValueAttributes = slider.lowValueAttributes
@@ -223,7 +223,7 @@ withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
         }
 
 
-withMaxFormatter : ({ value : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withMaxFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
     DoubleSlider
         { lowValueAttributes = slider.lowValueAttributes
@@ -234,7 +234,7 @@ withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
         }
 
 
-withLowValueFormatter : ({ value : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withLowValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)) =
     DoubleSlider
         { lowValueAttributes = { lowValueAttributes | formatter = formatter }
@@ -245,7 +245,7 @@ withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)
         }
 
 
-withHighValueFormatter : ({ value : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
+withHighValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withHighValueFormatter formatter (DoubleSlider ({ highValueAttributes } as slider)) =
     DoubleSlider
         { highValueAttributes = { highValueAttributes | formatter = formatter }
@@ -318,12 +318,12 @@ view (DoubleSlider slider) =
         , div [ Html.Attributes.class "input-range-labels-container" ]
             [ div
                 [ Html.Attributes.class "input-range-label" ]
-                [ Html.text (slider.commonAttributes.minFormatter { value = slider.commonAttributes.min }) ]
+                [ Html.text (slider.commonAttributes.minFormatter slider.commonAttributes.min) ]
             , div
                 [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
                 [ Html.text (formatCurrentRange (DoubleSlider slider)) ]
             , div
                 [ Html.Attributes.class "input-range-label" ]
-                [ Html.text (slider.commonAttributes.maxFormatter { value = slider.commonAttributes.max }) ]
+                [ Html.text (slider.commonAttributes.maxFormatter slider.commonAttributes.max) ]
             ]
         ]

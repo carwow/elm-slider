@@ -1,4 +1,4 @@
-module SingleSlider exposing (SingleSlider, init, update, view)
+module SingleSlider exposing (SingleSlider, init, update, view, withMaxFormatter, withMinFormatter, withValueFormatter)
 
 import DOM exposing (boundingClientRect)
 import Html exposing (..)
@@ -167,7 +167,7 @@ init attrs =
         }
 
 
-withMinFormatter : ({ value : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withMinFormatter : (Float -> String) -> SingleSlider msg -> SingleSlider msg
 withMinFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
     SingleSlider
         { valueAttributes = slider.valueAttributes
@@ -175,7 +175,7 @@ withMinFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
         }
 
 
-withMaxFormatter : ({ value : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withMaxFormatter : (Float -> String) -> SingleSlider msg -> SingleSlider msg
 withMaxFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
     SingleSlider
         { valueAttributes = slider.valueAttributes
@@ -183,7 +183,7 @@ withMaxFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
         }
 
 
-withValueFormatter : ({ value : Float, max : Float } -> String) -> SingleSlider msg -> SingleSlider msg
+withValueFormatter : (Float -> Float -> String) -> SingleSlider msg -> SingleSlider msg
 withValueFormatter formatter (SingleSlider ({ valueAttributes } as slider)) =
     SingleSlider
         { valueAttributes = { valueAttributes | formatter = formatter }
@@ -209,12 +209,12 @@ view (SingleSlider slider) =
             [ Html.Attributes.class "input-range-labels-container" ]
             [ div
                 [ Html.Attributes.class "input-range-label" ]
-                [ Html.text <| slider.commonAttributes.minFormatter { value = slider.commonAttributes.min } ]
+                [ Html.text <| slider.commonAttributes.minFormatter slider.commonAttributes.min ]
             , div
                 [ Html.Attributes.class "input-range-label input-range-label--current-value" ]
-                [ Html.text <| slider.valueAttributes.formatter { value = slider.valueAttributes.value, max = slider.commonAttributes.max } ]
+                [ Html.text <| slider.valueAttributes.formatter slider.valueAttributes.value slider.commonAttributes.max ]
             , div
                 [ Html.Attributes.class "input-range-label" ]
-                [ Html.text <| slider.commonAttributes.maxFormatter { value = slider.commonAttributes.max } ]
+                [ Html.text <| slider.commonAttributes.maxFormatter slider.commonAttributes.max ]
             ]
         ]
