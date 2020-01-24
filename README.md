@@ -20,19 +20,18 @@ Input handling is *your* responsibility - define a function to decided what to d
 
 ```elm
 singleSlider =
-      SingleSlider.init
-          { min = 0
-          , max = 1000
-          , value = 500
-          , step = 50
-          , onChange = handleSingleSliderChange
-          }
-
-
-handleSingleSliderChange : Float -> Msg
-handleSingleSliderChange str =
-    SingleSliderChange str
-
+    SingleSlider.init
+        { min = 0
+        , max = 1000
+        , value = 500
+        , step = 50
+        , onChange = SingleSliderChange
+        }
+          
+          
+type Msg
+    = NoOp
+    | SingleSliderChange Float
 
 
 view : Model -> Html Msg
@@ -51,20 +50,16 @@ doubleSlider =
         , lowValue = 500
         , highValue = 750
         , step = 50
-        , onLowChange = handleDoubleSliderLowChange
-        , onHighChange = handleDoubleSliderHighChange
+        , onLowChange = DoubleSliderLowChange
+        , onHighChange = DoubleSliderHighChange
         }
+
+
+type Msg
+    = NoOp
+    | DoubleSliderLowChange Float
+    | DoubleSliderHighChange Float
         
-        
-handleDoubleSliderLowChange : Float -> Msg
-handleDoubleSliderLowChange str =
-    DoubleSliderLowChange str
-
-
-handleDoubleSliderHighChange : Float -> Msg
-handleDoubleSliderHighChange str =
-    DoubleSliderHighChange str
-
 
 view : Model -> Html Msg
 view model =

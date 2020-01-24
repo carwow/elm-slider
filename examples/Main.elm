@@ -40,7 +40,7 @@ init flags =
                     , max = 1000
                     , value = 500
                     , step = 50
-                    , onChange = handleSingleSliderChange
+                    , onChange = SingleSliderChange
                     }
                     |> SingleSlider.withMinFormatter minFormatter
             , doubleSlider =
@@ -50,8 +50,8 @@ init flags =
                     , lowValue = 500
                     , highValue = 750
                     , step = 50
-                    , onLowChange = handleDoubleSliderLowChange
-                    , onHighChange = handleDoubleSliderHighChange
+                    , onLowChange = DoubleSliderLowChange
+                    , onHighChange = DoubleSliderHighChange
                     }
             }
     in
@@ -99,21 +99,6 @@ update msg model =
 
 
 -- VIEW
-
-
-handleSingleSliderChange : Float -> Msg
-handleSingleSliderChange str =
-    SingleSliderChange str
-
-
-handleDoubleSliderLowChange : Float -> Msg
-handleDoubleSliderLowChange str =
-    DoubleSliderLowChange str
-
-
-handleDoubleSliderHighChange : Float -> Msg
-handleDoubleSliderHighChange str =
-    DoubleSliderHighChange str
 
 
 view : Model -> Html Msg
