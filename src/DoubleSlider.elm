@@ -1,8 +1,37 @@
-module DoubleSlider exposing (DoubleSlider, init, updateHighValue, updateLowValue, view, withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold)
+module DoubleSlider exposing
+    ( DoubleSlider
+    , init
+    , view
+    , updateHighValue, updateLowValue
+    , withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
+    )
 
 {-| A slider component, with two track thumbs.
 
-@docs DoubleSlider, init, updateHighValue, updateLowValue, view, withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
+
+# Definition
+
+@docs DoubleSlider
+
+
+# Init
+
+@docs init
+
+
+# View
+
+@docs view
+
+
+# Updaters
+
+@docs updateHighValue, updateLowValue
+
+
+# Config
+
+@docs withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
 
 -}
 

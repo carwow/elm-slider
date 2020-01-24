@@ -1,8 +1,37 @@
-module SingleSlider exposing (SingleSlider, init, update, view, withMaxFormatter, withMinFormatter, withValueFormatter)
+module SingleSlider exposing
+    ( SingleSlider
+    , init
+    , view
+    , update
+    , withMaxFormatter, withMinFormatter, withValueFormatter
+    )
 
 {-| A slider component, with one track thumb.
 
-@docs SingleSlider, init, update, view, withMaxFormatter, withMinFormatter, withValueFormatter
+
+# Definition
+
+@docs SingleSlider
+
+
+# Init
+
+@docs init
+
+
+# View
+
+@docs view
+
+
+# Update
+
+@docs update
+
+
+# Config
+
+@docs withMaxFormatter, withMinFormatter, withValueFormatter
 
 -}
 
