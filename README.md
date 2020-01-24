@@ -87,3 +87,10 @@ singleSlider =
           }
           |> SingleSlider.withMinFormatter minFormatter
 ```
+
+## CSS
+
+Example CSS for the slider components is provided at `examples/example.css`
+
+It is recommended to start with these styles and override them according to the theme of your website.
+```
