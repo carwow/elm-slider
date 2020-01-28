@@ -43,6 +43,8 @@ import Json.Decode
 import RangeSlider
 
 
+{-| Type representing the DoubleSlider component
+-}
 type DoubleSlider msg
     = DoubleSlider
         { commonAttributes : RangeSlider.CommonAttributes
@@ -213,6 +215,8 @@ defaultCurrentRangeFormatter values =
 -- API
 
 
+{-| Initializes a DoubleSlider
+-}
 init :
     { min : Float
     , max : Float
@@ -247,6 +251,8 @@ init attrs =
         }
 
 
+{-| Allows for customization of the minimum value label
+-}
 withMinFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
     DoubleSlider
@@ -258,6 +264,8 @@ withMinFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
         }
 
 
+{-| Allows for customization of the maximum value label
+-}
 withMaxFormatter : (Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
     DoubleSlider
@@ -269,6 +277,8 @@ withMaxFormatter formatter (DoubleSlider ({ commonAttributes } as slider)) =
         }
 
 
+{-| Allows for customization of the current low value label
+-}
 withLowValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)) =
     DoubleSlider
@@ -280,6 +290,8 @@ withLowValueFormatter formatter (DoubleSlider ({ lowValueAttributes } as slider)
         }
 
 
+{-| Allows for customization of the current high value label
+-}
 withHighValueFormatter : (Float -> Float -> String) -> DoubleSlider msg -> DoubleSlider msg
 withHighValueFormatter formatter (DoubleSlider ({ highValueAttributes } as slider)) =
     DoubleSlider
@@ -291,6 +303,8 @@ withHighValueFormatter formatter (DoubleSlider ({ highValueAttributes } as slide
         }
 
 
+{-| The overlap threshold determines the minimum difference between the two thumbs. By default it is set to 1.0
+-}
 withOverlapThreshold : Float -> DoubleSlider msg -> DoubleSlider msg
 withOverlapThreshold overlapThreshold (DoubleSlider slider) =
     DoubleSlider
@@ -302,6 +316,8 @@ withOverlapThreshold overlapThreshold (DoubleSlider slider) =
         }
 
 
+{-| Allows for customization of the slider's range label
+-}
 withCurrentRangeFormatter : ({ lowValue : Float, highValue : Float, min : Float, max : Float } -> String) -> DoubleSlider msg -> DoubleSlider msg
 withCurrentRangeFormatter currentRangeFormatter (DoubleSlider slider) =
     DoubleSlider
@@ -313,6 +329,8 @@ withCurrentRangeFormatter currentRangeFormatter (DoubleSlider slider) =
         }
 
 
+{-| Update the slider's low value
+-}
 updateLowValue : Float -> DoubleSlider msg -> DoubleSlider msg
 updateLowValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
     DoubleSlider
@@ -327,6 +345,8 @@ updateLowValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, c
         }
 
 
+{-| Update the slider's value
+-}
 updateHighValue : Float -> DoubleSlider msg -> DoubleSlider msg
 updateHighValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, commonAttributes } as slider)) =
     DoubleSlider
@@ -341,6 +361,8 @@ updateHighValue value (DoubleSlider ({ lowValueAttributes, highValueAttributes, 
         }
 
 
+{-| DoubleSlider view
+-}
 view : DoubleSlider msg -> Html msg
 view (DoubleSlider slider) =
     div []

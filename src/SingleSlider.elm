@@ -43,6 +43,8 @@ import Json.Decode
 import RangeSlider
 
 
+{-| Type representing the SingleSlider component
+-}
 type SingleSlider msg
     = SingleSlider
         { commonAttributes : RangeSlider.CommonAttributes
@@ -177,6 +179,8 @@ inputDecoder =
 -- API
 
 
+{-| Initializes a SingleSlider
+-}
 init :
     { min : Float
     , max : Float
@@ -202,6 +206,8 @@ init attrs =
         }
 
 
+{-| Allows for customization of the minimum value label
+-}
 withMinFormatter : (Float -> String) -> SingleSlider msg -> SingleSlider msg
 withMinFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
     SingleSlider
@@ -210,6 +216,8 @@ withMinFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
         }
 
 
+{-| Allows for customization of the maximum value label
+-}
 withMaxFormatter : (Float -> String) -> SingleSlider msg -> SingleSlider msg
 withMaxFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
     SingleSlider
@@ -218,6 +226,8 @@ withMaxFormatter formatter (SingleSlider ({ commonAttributes } as slider)) =
         }
 
 
+{-| Allows for customization of the current value label
+-}
 withValueFormatter : (Float -> Float -> String) -> SingleSlider msg -> SingleSlider msg
 withValueFormatter formatter (SingleSlider ({ valueAttributes } as slider)) =
     SingleSlider
@@ -226,6 +236,8 @@ withValueFormatter formatter (SingleSlider ({ valueAttributes } as slider)) =
         }
 
 
+{-| Update the slider's value
+-}
 update : Float -> SingleSlider msg -> SingleSlider msg
 update value (SingleSlider ({ valueAttributes } as slider)) =
     SingleSlider
@@ -234,6 +246,8 @@ update value (SingleSlider ({ valueAttributes } as slider)) =
         }
 
 
+{-| SingleSlider view
+-}
 view : SingleSlider msg -> Html msg
 view (SingleSlider slider) =
     div []
