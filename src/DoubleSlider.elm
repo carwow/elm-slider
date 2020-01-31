@@ -4,7 +4,7 @@ module DoubleSlider exposing
     , view
     , updateHighValue, updateLowValue
     , withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
-    , fetchHighValue, fetchLowValue
+    , fetchLowValue, fetchHighValue
     )
 
 {-| A slider component, with two track thumbs.
@@ -37,7 +37,7 @@ module DoubleSlider exposing
 
 # Helper
 
-@docs fetchLowValue fetchHighValue
+@docs fetchLowValue, fetchHighValue
 
 -}
 
