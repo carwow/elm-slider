@@ -257,9 +257,11 @@ update value (SingleSlider ({ valueAttributes } as slider)) =
 view : SingleSlider msg -> Html msg
 view (SingleSlider slider) =
     div []
-        [ RangeSlider.sliderInputView slider.commonAttributes slider.valueAttributes inputDecoder
-        , RangeSlider.sliderTrackView (onOutsideRangeClick (SingleSlider slider))
-        , progressView (SingleSlider slider)
+        [ div [ class "input-range-container" ]
+            [ RangeSlider.sliderInputView slider.commonAttributes slider.valueAttributes inputDecoder
+            , RangeSlider.sliderTrackView (onOutsideRangeClick (SingleSlider slider))
+            , progressView (SingleSlider slider)
+            ]
         , div
             [ Html.Attributes.class "input-range-labels-container" ]
             [ div
