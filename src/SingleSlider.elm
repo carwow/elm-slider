@@ -4,6 +4,7 @@ module SingleSlider exposing
     , view
     , update
     , withMaxFormatter, withMinFormatter, withValueFormatter
+    , fetchValue
     )
 
 {-| A slider component, with one track thumb.
