@@ -4,6 +4,7 @@ module SingleSlider exposing
     , view
     , update
     , withMaxFormatter, withMinFormatter, withValueFormatter
+    , fetchValue
     )
 
 {-| A slider component, with one track thumb.
@@ -32,6 +33,11 @@ module SingleSlider exposing
 # Config
 
 @docs withMaxFormatter, withMinFormatter, withValueFormatter
+
+
+# Helper
+
+@docs fetchValue
 
 -}
 
@@ -267,3 +273,10 @@ view (SingleSlider slider) =
                 [ Html.text <| slider.commonAttributes.maxFormatter slider.commonAttributes.max ]
             ]
         ]
+
+
+{-| Fetch SingleSlider's value
+-}
+fetchValue : SingleSlider msg -> Float
+fetchValue (SingleSlider ({ valueAttributes } as slider)) =
+    valueAttributes.value

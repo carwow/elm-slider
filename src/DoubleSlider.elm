@@ -4,6 +4,7 @@ module DoubleSlider exposing
     , view
     , updateHighValue, updateLowValue
     , withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
+    , fetchHighValue, fetchLowValue
     )
 
 {-| A slider component, with two track thumbs.
@@ -32,6 +33,11 @@ module DoubleSlider exposing
 # Config
 
 @docs withCurrentRangeFormatter, withHighValueFormatter, withLowValueFormatter, withMaxFormatter, withMinFormatter, withOverlapThreshold
+
+
+# Helper
+
+@docs fetchLowValue fetchHighValue
 
 -}
 
@@ -384,3 +390,17 @@ view (DoubleSlider slider) =
                 [ Html.text (slider.commonAttributes.maxFormatter slider.commonAttributes.max) ]
             ]
         ]
+
+
+{-| Fetch DoubleSlider's Low value
+-}
+fetchLowValue : DoubleSlider msg -> Float
+fetchLowValue (DoubleSlider ({ lowValueAttributes } as slider)) =
+    lowValueAttributes.value
+
+
+{-| Fetch DoubleSlider's High value
+-}
+fetchHighValue : DoubleSlider msg -> Float
+fetchHighValue (DoubleSlider ({ highValueAttributes } as slider)) =
+    highValueAttributes.value
