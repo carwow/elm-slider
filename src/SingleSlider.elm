@@ -138,9 +138,7 @@ onInsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slide
                             clamp commonAttributes.min commonAttributes.max valueAttributes.value
 
                         newValue =
-                            round <|
-                                adjustedValue
-                                    - ((mouseX / rectangle.width) * (adjustedValue - commonAttributes.min))
+                            round <| (adjustedValue / rectangle.width) * mouseX
 
                         adjustedNewValue =
                             clamp commonAttributes.min commonAttributes.max <| toFloat newValue
@@ -163,12 +161,12 @@ progressView (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
             clamp commonAttributes.min commonAttributes.max valueAttributes.value
 
         progress =
-            commonAttributes.max - value * progressRatio
+            (commonAttributes.max - value) * progressRatio
 
         progressAttributes =
             [ Html.Attributes.class "input-range__progress"
-            , Html.Attributes.style "left" <| String.fromFloat 0.0 ++ "%"
-            , Html.Attributes.style "right" <| String.fromFloat progressRatio ++ "%"
+            , Html.Attributes.style "left" <| "0.0%"
+            , Html.Attributes.style "right" <| String.fromFloat progress ++ "%"
             , RangeSlider.onClick (onInsideRangeClick (SingleSlider slider))
             ]
     in
