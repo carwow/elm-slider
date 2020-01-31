@@ -33,6 +33,11 @@ module SingleSlider exposing
 
 @docs withMaxFormatter, withMinFormatter, withValueFormatter
 
+
+# Helper
+
+@docs fetchValue
+
 -}
 
 import DOM exposing (boundingClientRect)
@@ -267,3 +272,10 @@ view (SingleSlider slider) =
                 [ Html.text <| slider.commonAttributes.maxFormatter slider.commonAttributes.max ]
             ]
         ]
+
+
+{-| Fetch SingleSlider's value
+-}
+fetchValue : SingleSlider msg -> Float
+fetchValue (SingleSlider ({ valueAttributes } as slider)) =
+    valueAttributes.value
