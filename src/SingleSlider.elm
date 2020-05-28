@@ -67,11 +67,8 @@ onOutsideRangeClick (SingleSlider ({ commonAttributes } as slider)) =
                     let
                         clickedValue =
                             (((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min
-
-                        newValue =
-                            RangeSlider.snapValue clickedValue commonAttributes.step
                     in
-                    newValue
+                    RangeSlider.snapValue clickedValue commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -94,11 +91,8 @@ onInsideRangeClick (SingleSlider { commonAttributes, valueAttributes }) =
 
                         adjustedNewValue =
                             clamp commonAttributes.min commonAttributes.max <| toFloat newValue
-
-                        newNewValue =
-                            RangeSlider.snapValue adjustedNewValue commonAttributes.step
                     in
-                    newNewValue
+                    RangeSlider.snapValue adjustedNewValue commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
