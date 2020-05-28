@@ -27,27 +27,16 @@ onChange msg input =
     Html.Events.on "change" (Json.Decode.map msg input)
 
 
-sliderInputView : CommonAttributes -> ValueAttributes msg -> Json.Decode.Decoder Float -> Maybe String -> Html msg
-sliderInputView commonAttributes valueAttributes input extraClass =
-    let
-        baseClass =
-            "input-range"
-
-        class =
-            case extraClass of
-                Just s ->
-                    baseClass ++ " " ++ s
-
-                Nothing ->
-                    baseClass
-    in
+sliderInputView : CommonAttributes -> ValueAttributes msg -> Json.Decode.Decoder Float -> List String -> Html msg
+sliderInputView commonAttributes valueAttributes input extraClasses =
     Html.input
         [ Html.Attributes.type_ "range"
         , Html.Attributes.min <| String.fromFloat commonAttributes.min
         , Html.Attributes.max <| String.fromFloat commonAttributes.max
         , Html.Attributes.step <| String.fromFloat commonAttributes.step
         , Html.Attributes.value <| String.fromFloat valueAttributes.value
-        , Html.Attributes.class class
+        , Html.Attributes.class "input-range"
+        , Html.Attributes.classList <| List.map (\c -> ( c, True )) extraClasses
         , onChange valueAttributes.change input
         ]
         []
