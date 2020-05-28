@@ -42,8 +42,8 @@ module DoubleSlider exposing
 -}
 
 import DOM exposing (boundingClientRect)
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
 import Html.Events
 import Json.Decode
 import RangeSlider
@@ -76,20 +76,15 @@ changeMsg (DoubleSlider slider) thumb =
             slider.highValueAttributes.change
 
 
-snapValue : Float -> Float -> Float
-snapValue value step =
-    (value / step) * step
-
-
 onOutsideRangeClick : DoubleSlider msg -> Json.Decode.Decoder msg
-onOutsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes, highValueAttributes } as slider)) =
+onOutsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes } as slider)) =
     let
         valueTypeDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
                     let
                         newValue =
-                            snapValue ((commonAttributes.max / rectangle.width) * mouseX) commonAttributes.step
+                            RangeSlider.snapValue ((commonAttributes.max / rectangle.width) * mouseX) commonAttributes.step
 
                         valueType =
                             if newValue < lowValueAttributes.value then
@@ -106,11 +101,7 @@ onOutsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes, highV
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    let
-                        newValue =
-                            (((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min
-                    in
-                    newValue
+                    RangeSlider.snapValue ((((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min) commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -143,11 +134,7 @@ onInsideRangeClick (DoubleSlider ({ commonAttributes, lowValueAttributes, highVa
         valueDecoder =
             Json.Decode.map2
                 (\rectangle mouseX ->
-                    let
-                        newValue =
-                            snapValue ((((highValueAttributes.value - lowValueAttributes.value) / rectangle.width) * mouseX) + lowValueAttributes.value) commonAttributes.step
-                    in
-                    newValue
+                    RangeSlider.snapValue ((((highValueAttributes.value - lowValueAttributes.value) / rectangle.width) * mouseX) + lowValueAttributes.value) commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -395,12 +382,12 @@ view (DoubleSlider slider) =
 {-| Fetch DoubleSlider's Low value
 -}
 fetchLowValue : DoubleSlider msg -> Float
-fetchLowValue (DoubleSlider ({ lowValueAttributes } as slider)) =
+fetchLowValue (DoubleSlider { lowValueAttributes }) =
     lowValueAttributes.value
 
 
 {-| Fetch DoubleSlider's High value
 -}
 fetchHighValue : DoubleSlider msg -> Float
-fetchHighValue (DoubleSlider ({ highValueAttributes } as slider)) =
+fetchHighValue (DoubleSlider { highValueAttributes }) =
     highValueAttributes.value

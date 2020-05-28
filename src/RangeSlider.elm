@@ -1,4 +1,4 @@
-module RangeSlider exposing (CommonAttributes, ValueAttributes, defaultLabelFormatter, defaultValueFormatter, onClick, sliderInputView, sliderTrackView)
+module RangeSlider exposing (CommonAttributes, ValueAttributes, defaultLabelFormatter, defaultValueFormatter, onClick, sliderInputView, sliderTrackView, snapValue)
 
 import Html exposing (Html, div)
 import Html.Attributes exposing (class, classList)
@@ -20,6 +20,11 @@ type alias CommonAttributes =
     , minFormatter : Float -> String
     , maxFormatter : Float -> String
     }
+
+
+snapValue : Float -> Float -> Float
+snapValue value step =
+    toFloat (round (value / step)) * step
 
 
 onChange : (Float -> msg) -> Json.Decode.Decoder Float -> Html.Attribute msg
