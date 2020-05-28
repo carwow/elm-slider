@@ -373,8 +373,8 @@ view : DoubleSlider msg -> Html msg
 view (DoubleSlider slider) =
     div []
         [ div [ Html.Attributes.class "input-range-container" ]
-            [ RangeSlider.sliderInputView slider.commonAttributes slider.lowValueAttributes (inputDecoder (DoubleSlider slider) Low)
-            , RangeSlider.sliderInputView slider.commonAttributes slider.highValueAttributes (inputDecoder (DoubleSlider slider) High)
+            [ RangeSlider.sliderInputView slider.commonAttributes slider.lowValueAttributes (inputDecoder (DoubleSlider slider) Low) (Just "input-range--first")
+            , RangeSlider.sliderInputView slider.commonAttributes slider.highValueAttributes (inputDecoder (DoubleSlider slider) High) (Just "input-range--second")
             , RangeSlider.sliderTrackView (onOutsideRangeClick (DoubleSlider slider))
             , progressView (DoubleSlider slider)
             ]

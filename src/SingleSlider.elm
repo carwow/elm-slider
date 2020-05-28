@@ -256,7 +256,7 @@ view : SingleSlider msg -> Html msg
 view (SingleSlider slider) =
     div []
         [ div [ class "input-range-container" ]
-            [ RangeSlider.sliderInputView slider.commonAttributes slider.valueAttributes inputDecoder
+            [ RangeSlider.sliderInputView slider.commonAttributes slider.valueAttributes inputDecoder Nothing
             , RangeSlider.sliderTrackView (onOutsideRangeClick (SingleSlider slider))
             , progressView (SingleSlider slider)
             ]
