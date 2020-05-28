@@ -1,9 +1,9 @@
 module RangeSlider exposing (CommonAttributes, ValueAttributes, defaultLabelFormatter, defaultValueFormatter, onClick, sliderInputView, sliderTrackView)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
-import Json.Decode exposing (..)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class, classList)
+import Html.Events exposing (on)
+import Json.Decode
 
 
 type alias ValueAttributes msg =
@@ -27,6 +27,11 @@ onChange msg input =
     Html.Events.on "change" (Json.Decode.map msg input)
 
 
+onInput : (Float -> msg) -> Json.Decode.Decoder Float -> Html.Attribute msg
+onInput msg input =
+    Html.Events.on "input" (Json.Decode.map msg input)
+
+
 sliderInputView : CommonAttributes -> ValueAttributes msg -> Json.Decode.Decoder Float -> List String -> Html msg
 sliderInputView commonAttributes valueAttributes input extraClasses =
     Html.input
@@ -38,6 +43,7 @@ sliderInputView commonAttributes valueAttributes input extraClasses =
         , Html.Attributes.class "input-range"
         , Html.Attributes.classList <| List.map (\c -> ( c, True )) extraClasses
         , onChange valueAttributes.change input
+        , onInput valueAttributes.change input
         ]
         []
 
