@@ -42,9 +42,9 @@ module SingleSlider exposing
 -}
 
 import DOM exposing (boundingClientRect)
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (..)
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
+import Html.Events
 import Json.Decode
 import RangeSlider
 
@@ -58,56 +58,8 @@ type SingleSlider msg
         }
 
 
-closestStep : Float -> Float -> Int
-closestStep value step =
-    let
-        roundedValue =
-            round value
-
-        roundedStep =
-            if round step > 0 then
-                round step
-
-            else
-                1
-
-        remainder =
-            remainderBy roundedStep roundedValue
-    in
-    if remainder > (roundedStep // 2) then
-        (roundedValue - remainder) + roundedStep
-
-    else
-        roundedValue - remainder
-
-
-snapValue : Float -> SingleSlider msg -> Float
-snapValue value (SingleSlider slider) =
-    let
-        roundedStep =
-            round slider.commonAttributes.step
-
-        adjustedRoundedStep =
-            if roundedStep > 0 then
-                roundedStep
-
-            else
-                1
-
-        newValue =
-            value / toFloat adjustedRoundedStep
-
-        roundedValue =
-            floor newValue
-
-        nextValue =
-            toFloat (roundedValue * adjustedRoundedStep)
-    in
-    nextValue
-
-
 onOutsideRangeClick : SingleSlider msg -> Json.Decode.Decoder msg
-onOutsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
+onOutsideRangeClick (SingleSlider ({ commonAttributes } as slider)) =
     let
         valueDecoder =
             Json.Decode.map2
@@ -115,11 +67,8 @@ onOutsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slid
                     let
                         clickedValue =
                             (((commonAttributes.max - commonAttributes.min) / rectangle.width) * mouseX) + commonAttributes.min
-
-                        newValue =
-                            closestStep clickedValue commonAttributes.step
                     in
-                    toFloat newValue
+                    RangeSlider.snapValue clickedValue commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -128,7 +77,7 @@ onOutsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slid
 
 
 onInsideRangeClick : SingleSlider msg -> Json.Decode.Decoder msg
-onInsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slider)) =
+onInsideRangeClick (SingleSlider { commonAttributes, valueAttributes }) =
     let
         valueDecoder =
             Json.Decode.map2
@@ -143,7 +92,7 @@ onInsideRangeClick (SingleSlider ({ commonAttributes, valueAttributes } as slide
                         adjustedNewValue =
                             clamp commonAttributes.min commonAttributes.max <| toFloat newValue
                     in
-                    adjustedNewValue
+                    RangeSlider.snapValue adjustedNewValue commonAttributes.step
                 )
                 (Json.Decode.at [ "target" ] boundingClientRect)
                 (Json.Decode.at [ "offsetX" ] Json.Decode.float)
@@ -278,5 +227,5 @@ view (SingleSlider slider) =
 {-| Fetch SingleSlider's value
 -}
 fetchValue : SingleSlider msg -> Float
-fetchValue (SingleSlider ({ valueAttributes } as slider)) =
+fetchValue (SingleSlider { valueAttributes }) =
     valueAttributes.value
