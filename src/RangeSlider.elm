@@ -30,7 +30,7 @@ snapValue value step =
             step
                 |> String.fromFloat
                 |> String.split "."
-                |> List.reverse
+                |> List.drop 1
                 |> List.head
 
         precision =
