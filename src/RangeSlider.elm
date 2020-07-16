@@ -39,7 +39,7 @@ snapValue value step =
                     String.length s
 
                 Nothing ->
-                    1
+                    0
     in
     toFloat (round (value / step))
         * step
