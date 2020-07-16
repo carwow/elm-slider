@@ -4,6 +4,7 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (class, classList)
 import Html.Events exposing (on)
 import Json.Decode
+import Round exposing (roundNum)
 
 
 type alias ValueAttributes msg =
@@ -24,7 +25,25 @@ type alias CommonAttributes =
 
 snapValue : Float -> Float -> Float
 snapValue value step =
-    toFloat (round (value / step)) * step
+    let
+        stepDecimals =
+            step
+                |> String.fromFloat
+                |> String.split "."
+                |> List.reverse
+                |> List.head
+
+        precision =
+            case stepDecimals of
+                Just s ->
+                    String.length s
+
+                Nothing ->
+                    1
+    in
+    toFloat (round (value / step))
+        * step
+        |> roundNum precision
 
 
 onChange : (Float -> msg) -> Json.Decode.Decoder Float -> Html.Attribute msg
