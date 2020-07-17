@@ -2,9 +2,7 @@ module Main exposing (main)
 
 import Browser
 import DoubleSlider as DoubleSlider exposing (..)
-import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
-import RangeSlider as RangeSlider exposing (..)
+import Html exposing (Html, div)
 import SingleSlider exposing (..)
 
 
@@ -63,8 +61,7 @@ init flags =
 
 
 type Msg
-    = NoOp
-    | DoubleSliderLowChange Float
+    = DoubleSliderLowChange Float
     | DoubleSliderHighChange Float
     | SingleSliderChange Float
 
@@ -72,9 +69,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NoOp ->
-            ( model, Cmd.none )
-
         DoubleSliderLowChange str ->
             let
                 newSlider =
