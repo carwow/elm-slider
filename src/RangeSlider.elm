@@ -41,8 +41,7 @@ snapValue value step =
                 Nothing ->
                     0
     in
-    toFloat (round (value / step))
-        * step
+    (toFloat (round (value / step)) * step)
         |> roundNum precision
 
 
