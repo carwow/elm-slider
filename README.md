@@ -8,6 +8,10 @@ A range slider component, implemented natively in Elm.
 elm install carwow/elm-slider
 ```
 
+## Live demo
+
+You can check out the single and double sliders on [carwow's live styleguide](https://styleguide.carwow.co.uk/range_slider) 
+
 ## Usage
 
 For a full example implementation, see `examples/Main.elm`
