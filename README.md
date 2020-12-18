@@ -10,7 +10,7 @@ elm install carwow/elm-slider
 
 ## Live demo
 
-You can check out the single and double sliders on this [demo on Ellie](https://ellie-app.com/bQyC4hkW3dra1) 
+You can check out the single and double sliders on this [demo on Ellie](https://ellie-app.com/bQyC4hkW3dra1).
 
 ## Usage
 
